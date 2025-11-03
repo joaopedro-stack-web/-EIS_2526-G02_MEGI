@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Collection · Star Minis Collection</title>
+  <!-- ✅ Correct relative link to CSS -->
+  <link rel="stylesheet" href="../css/collection-page.css" />/>
+</head>
+<body>
+  <!-- Accessibility: Skip link -->
+  <a class="skip-link" href="#main-content">Skip to content</a>
+
+  <!-- Layout container -->
+  <div class="layout">
+
+    <!-- Topbar with right-side tools -->
+    <header class="topbar" role="banner" aria-label="Site top bar">
+      <div class="topbar__brand" aria-label="Site name">Collecta<span class="topbar__dot">•</span>Hub</div>
+      <div class="topbar__actions">
+        <button class="btn btn--ghost" type="button" aria-label="Open configuration">
+          <!-- gear icon -->
+          <svg class="icon" role="img" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm8.94-3.5a7.88 7.88 0 0 0-.11-1.3l2.18-1.69a.75.75 0 0 0 .17-.96l-2.07-3.59a.75.75 0 0 0-.9-.34l-2.57 1.03a7.92 7.92 0 0 0-2.24-1.3L14.9.77a.75.75 0 0 0-.74-.6h-4.3a.75.75 0 0 0-.74.6l-.5 2.98a7.92 7.92 0 0 0-2.24 1.3L3.8 3.02a.75.75 0 0 0-.9.34L.83 6.95a.75.75 0 0 0 .17.96L3.18 9.6c-.05.43-.1.86-.1 1.4s.05.97.1 1.4l-2.18 1.69a.75.75 0 0 0-.17.96l2.07 3.59c.2.34.62.49.99.35l2.57-1.03c.66.53 1.41.97 2.24 1.3l.5 2.98c.07.35.38.6.74.6h4.3c.36 0 .67-.25.74-.6l.5-2.98c.83-.33 1.58-.77 2.24-1.3l2.57 1.03c.37.14.79 0 .99-.35l2.07-3.59a.75.75 0 0 0-.17-.96l-2.18-1.69c.07-.43.11-.86.11-1.4Z"/></svg>
+          <span>Config</span>
+        </button>
+        <button class="btn btn--ghost" type="button" aria-label="Open profile">
+          <!-- user icon -->
+          <svg class="icon" role="img" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-5.33 0-8 2.67-8 6v1h16v-1c0-3.33-2.67-6-8-6Z"/></svg>
+          <span>Profile</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Sidebar navigation -->
+    <aside class="sidebar" aria-label="Primary">
+      <button class="btn btn--primary sidebar__cta" type="button" aria-label="Create a new collection">
+        <!-- plus icon -->
+        <svg class="icon" role="img" aria-hidden="true" viewBox="0 0 24 24"><path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z"/></svg>
+        <span>Create New Collection</span>
+      </button>
+
+      <nav class="sidebar__nav" aria-label="Main navigation">
+        <ul class="sidebar__list">
+          <li><a class="sidebar__link" href="#" aria-label="Go to Collector">Collector..</a></li>
+          <li><a class="sidebar__link" href="#" aria-current="page" aria-label="Current page Collections">Collections</a></li>
+          <li><a class="sidebar__link" href="#" aria-label="Go to Explore">Explore</a></li>
+          <li><a class="sidebar__link" href="#" aria-label="Go to Events">Events</a></li>
+          <li><a class="sidebar__link" href="#" aria-label="Go to Community">Community</a></li>
+        </ul>
+      </nav>
+    </aside>
+
+    <!-- Main content -->
+    <main id="main-content" class="main" data-collection-id="12345-star-minis" aria-label="Collection main content">
+      <!-- Hero: collection title + image -->
+      <section class="hero" aria-label="Collection hero">
+        <figure class="hero__media">
+          <img src="https://picsum.photos/seed/starminis/1200/600" alt="Star Minis Collection cover image" />
+          <figcaption class="sr-only">Cover image of the collection.</figcaption>
+        </figure>
+        <div class="hero__text">
+          <h1 class="hero__title">Star Minis Collection</h1>
+          <p class="hero__subtitle">Curate, track, and showcase your miniature stars.</p>
+        </div>
+      </section>
+
+      <!-- Actions -->
+      <section class="actions" aria-label="Collection actions">
+        <button class="btn btn--secondary btn--lg" type="button" aria-label="Add a new item to this collection">
+          <!-- add box -->
+          <svg class="icon" role="img" aria-hidden="true" viewBox="0 0 24 24"><path d="M19 3H5a2 2 0 0 0-2 2v14l4-4h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2ZM13 7v3h3v2h-3v3h-2v-3H8V10h3V7z"/></svg>
+          <span>Add Item</span>
+        </button>
+        <button class="btn btn--secondary btn--lg" type="button" aria-label="Manage this collection">
+          <!-- settings sliders -->
+          <svg class="icon" role="img" aria-hidden="true" viewBox="0 0 24 24"><path d="M21 7H10V5h11v2ZM3 7H2V5h1v2Zm6 0H5V5h4v2Zm12 6H14v-2h7v2ZM3 13H2v-2h1v2Zm8 0H5v-2h6v2Zm10 6H9v-2h12v2ZM3 19H2v-2h1v2Zm4 0H5v-2h2v2Z"/></svg>
+          <span>Manage Collection</span>
+        </button>
+      </section>
+
+      <!-- Filters -->
+      <section class="filters" aria-label="Search and filters">
+        <div class="field field--search">
+          <label class="sr-only" for="search-input">Search items</label>
+          <input id="search-input" type="search" placeholder="Search items" inputmode="search" aria-label="Search items in this collection" />
+          <!-- search icon -->
+          <svg class="icon icon--left" role="img" aria-hidden="true" viewBox="0 0 24 24"><path d="M10 18a8 8 0 1 1 5.29-14.02A8 8 0 0 1 10 18Zm11 2-6-6"/></svg>
+        </div>
+
+        <div class="field">
+          <label class="sr-only" for="filter-select">Filter</label>
+          <select id="filter-select" aria-label="Filter items">
+            <option value="">Filter</option>
+            <option value="type:figure">Type: Figure</option>
+            <option value="rarity:high">Rarity: 8–10</option>
+            <option value="recent">Recently added</option>
+          </select>
+        </div>
+
+        <!-- TODO: additional filters (type, rarity/importance, price) -->
+        <!-- TODO: sorting dropdown -->
+      </section>
+
+      <!-- Items grid -->
+      <section class="grid" aria-label="Collection items grid">
+        <!-- Card 1 -->
+        <article class="card" data-item-id="item-1" tabindex="0" aria-label="Item 1">
+          <div class="card__media">
+            <img src="https://picsum.photos/seed/item1/400/300" alt="Item 1 image" />
+            <span class="badge" title="Rarity 7">R7</span>
+          </div>
+          <div class="card__body">
+            <h3 class="card__title"><a href="#" aria-label="Open Item 1 details">Item 1</a></h3>
+            <p class="card__meta">Figure · 2019</p>
+          </div>
+        </article>
+
+        <!-- Card 2 -->
+        <article class="card" data-item-id="item-2" tabindex="0" aria-label="Item 2">
+          <div class="card__media">
+            <img src="https://picsum.photos/seed/item2/400/300" alt="Item 2 image" />
+            <span class="badge" title="Rarity 5">R5</span>
+          </div>
+          <div class="card__body">
+            <h3 class="card__title"><a href="#" aria-label="Open Item 2 details">Item 2</a></h3>
+            <p class="card__meta">Figure · 2020</p>
+          </div>
+        </article>
+
+        <!-- Card 3 -->
+        <article class="card" data-item-id="item-3" tabindex="0" aria-label="Item 3">
+          <div class="card__media">
+            <img src="https://picsum.photos/seed/item3/400/300" alt="Item 3 image" />
+            <span class="badge" title="Rarity 9">R9</span>
+          </div>
+          <div class="card__body">
+            <h3 class="card__title"><a href="#" aria-label="Open Item 3 details">Item 3</a></h3>
+            <p class="card__meta">Figure · 2018</p>
+          </div>
+        </article>
+
+        <!-- Card 4 -->
+        <article class="card" data-item-id="item-4" tabindex="0" aria-label="Item 4">
+          <div class="card__media">
+            <img src="https://picsum.photos/seed/item4/400/300" alt="Item 4 image" />
+            <span class="badge" title="Rarity 3">R3</span>
+          </div>
+          <div class="card__body">
+            <h3 class="card__title"><a href="#" aria-label="Open Item 4 details">Item 4</a></h3>
+            <p class="card__meta">Figure · 2022</p>
+          </div>
+        </article>
+
+        <!-- Card 5 -->
+        <article class="card" data-item-id="item-5" tabindex="0" aria-label="Item 5">
+          <div class="card__media">
+            <img src="https://picsum.photos/seed/item5/400/300" alt="Item 5 image" />
+            <span class="badge" title="Rarity 6">R6</span>
+          </div>
+          <div class="card__body">
+            <h3 class="card__title"><a href="#" aria-label="Open Item 5 details">Item 5</a></h3>
+            <p class="card__meta">Figure · 2021</p>
+          </div>
+        </article>
+
+        <!-- Card 6 -->
+        <article class="card" data-item-id="item-6" tabindex="0" aria-label="Item 6">
+          <div class="card__media">
+            <img src="https://picsum.photos/seed/item6/400/300" alt="Item 6 image" />
+            <span class="badge" title="Rarity 8">R8</span>
+          </div>
+          <div class="card__body">
+            <h3 class="card__title"><a href="#" aria-label="Open Item 6 details">Item 6</a></h3>
+            <p class="card__meta">Figure · 2017</p>
+          </div>
+        </article>
+      </section>
+
+      <!-- View more -->
+      <div class="loadmore">
+        <button class="btn btn--secondary btn--block" type="button" aria-label="View more items">View More</button>
+        <!-- TODO: pagination -->
+      </div>
+    </main>
+
+    <!-- Right aside: stats panel -->
+    <aside class="stats" aria-label="Collection Data">
+      <h2 class="stats__title">Collection Data</h2>
+      <dl class="stats__list">
+        <div class="stats__row">
+          <dt>Created</dt>
+          <dd>Jan 12, 2023</dd>
+        </div>
+        <div class="stats__row">
+          <dt>Type</dt>
+          <dd>Miniatures</dd>
+        </div>
+        <div class="stats__row">
+          <dt>Number of Items</dt>
+          <dd>128</dd>
+        </div>
+        <div class="stats__row">
+          <dt>Last Record</dt>
+          <dd>Oct 02, 2025</dd>
+        </div>
+      </dl>
+    </aside>
+
+    <!-- Optional footer -->
+    <footer class="footer" aria-label="Site footer">
+      <small>© 2025 CollectaHub · <a href="#" rel="nofollow">Privacy</a></small>
+    </footer>
+  </div>
+  <script src="./collection-page.js" defer></script>
+
+</body>
+</html>
