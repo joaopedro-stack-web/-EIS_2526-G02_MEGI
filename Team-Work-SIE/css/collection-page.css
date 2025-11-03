@@ -338,3 +338,50 @@ body {
   .hero__title{ font-size: 24px; }
   .btn--lg{ font-size: 15px; padding: 10px 14px; }
 }
+
+
+/* =========================================================
+   JS-driven enhancements
+   ========================================================= */
+
+/* Make entire media area look clickable when it has data-href */
+.card__media[data-href] { cursor: pointer; }
+
+/* Delete button that JS injects into each card */
+.card__action {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid rgba(0,0,0,.08);
+  background: rgba(255,255,255,.85);
+  color: #111827;
+  font-weight: 800;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 6px 14px rgba(2,6,23,.15);
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity .15s ease, transform .15s ease, background .15s ease;
+}
+.card__action:hover { background: #ffffff; }
+.card__action:focus-visible { outline: 3px solid rgba(37,99,235,.4); outline-offset: 2px; }
+
+/* Reveal delete on hover/focus */
+.card:hover .card__action,
+.card:focus-within .card__action { opacity: 1; transform: translateY(0); }
+
+/* Placeholder block when no image */
+.img-ph { width: 100%; display: block; aspect-ratio: 4/3; background: #e5e7eb; }
+
+/* Optional: slight accent for toasts if you later switch to class-based styling */
+/*
+.toast-root { position: fixed; right: 16px; bottom: 16px; z-index: 9999; }
+.toast { border-radius: 10px; padding: 10px 14px; color: #fff; box-shadow: 0 8px 24px rgba(0,0,0,.2); }
+.toast--success { background: #0B8A83; }
+.toast--error { background: #B00020; }
+.toast--info { background: #333; }
+*/
