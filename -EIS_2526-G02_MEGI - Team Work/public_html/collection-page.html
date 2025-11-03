@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<!--
+Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+Click nbfs://nbhost/SystemFileSystem/Templates/Other/html.html to edit this template
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>Collection · Star Minis Collection</title>
+<!-- ✅ Correct relative link to CSS -->
+<link rel="stylesheet" href="css.collection.page/collection-page.css">
+</head> <!-- ✅ FECHAMENTO DO HEAD ADICIONADO AQUI -->
+
+<body>
+<!-- Accessibility: Skip link -->
+<a class="skip-link" href="#main-content">Skip to content</a>
+<!-- Layout container -->
+<div class="layout">
+<!-- Topbar with right-side tools -->
+<header aria-label="Site top bar" class="topbar" role="banner">
+<div aria-label="Site name" class="topbar__brand">Collecta<span class="topbar__dot">•</span>Hub</div>
+<div class="topbar__actions">
+<button aria-label="Open configuration" class="btn btn--ghost" type="button">
+<!-- gear icon -->
+<svg aria-hidden="true" class="icon" role="img" viewbox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm8.94-3.5a7.88 7.88 0 0 0-.11-1.3l2.18-1.69a.75.75 0 0 0 .17-.96l-2.07-3.59a.75.75 0 0 0-.9-.34l-2.57 1.03a7.92 7.92 0 0 0-2.24-1.3L14.9.77a.75.75 0 0 0-.74-.6h-4.3a.75.75 0 0 0-.74.6l-.5 2.98a7.92 7.92 0 0 0-2.24 1.3L3.8 3.02a.75.75 0 0 0-.9.34L.83 6.95a.75.75 0 0 0 .17.96L3.18 9.6c-.05.43-.1.86-.1 1.4s.05.97.1 1.4l-2.18 1.69a.75.75 0 0 0-.17.96l2.07 3.59c.2.34.62.49.99.35l2.57-1.03c.66.53 1.41.97 2.24 1.3l.5 2.98c.07.35.38.6.74.6h4.3c.36 0 .67-.25.74-.6l.5-2.98c.83-.33 1.58-.77 2.24-1.3l2.57 1.03c.37.14.79 0 .99-.35l2.07-3.59a.75.75 0 0 0-.17-.96l-2.18-1.69c.07-.43.11-.86.11-1.4Z"></path></svg>
+<span>Config</span>
+</button>
+<button aria-label="Open profile" class="btn btn--ghost" type="button">
+<!-- user icon -->
+<svg aria-hidden="true" class="icon" role="img" viewbox="0 0 24 24"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-5.33 0-8 2.67-8 6v1h16v-1c0-3.33-2.67-6-8-6Z"></path></svg>
+<span>Profile</span>
+</button>
+</div>
+</header>
+<!-- Sidebar navigation -->
+<aside aria-label="Primary" class="sidebar">
+<button aria-label="Create a new collection" class="btn btn--primary sidebar__cta" type="button">
+<!-- plus icon -->
+<svg aria-hidden="true" class="icon" role="img" viewbox="0 0 24 24"><path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z"></path></svg>
+<span>Create New Collection</span>
+</button>
+<nav aria-label="Main navigation" class="sidebar__nav">
+<ul class="sidebar__list">
+<li><a aria-label="Go to Collector" class="sidebar__link" href="#">Collector..</a></li>
+<li><a aria-current="page" aria-label="Current page Collections" class="sidebar__link" href="#">Collections</a></li>
+<li><a aria-label="Go to Explore" class="sidebar__link" href="#">Explore</a></li>
+<li><a aria-label="Go to Events" class="sidebar__link" href="#">Events</a></li>
+<li><a aria-label="Go to Community" class="sidebar__link" href="#">Community</a></li>
+</ul>
+</nav>
+</aside>
+<!-- Main content -->
+<main aria-label="Collection main content" class="main" data-collection-id="12345-star-minis" id="main-content">
+<!-- Hero: collection title + image -->
+<section aria-label="Collection hero" class="hero">
+<figure class="hero__media">
+<img alt="Star Minis Collection cover image" src="https://picsum.photos/seed/starminis/1200/600"/>
+<figcaption class="sr-only">Cover image of the collection.</figcaption>
+</figure>
+<div class="hero__text">
+<h1 class="hero__title">Star Minis Collection</h1>
+<p class="hero__subtitle">Curate, track, and showcase your miniature stars.</p>
+</div>
+</section>
+<!-- Actions -->
+<section aria-label="Collection actions" class="actions">
+<button aria-label="Add a new item to this collection" class="btn btn--secondary btn--lg" type="button">
+<!-- add box -->
+<svg aria-hidden="true" class="icon" role="img" viewbox="0 0 24 24"><path d="M19 3H5a2 2 0 0 0-2 2v14l4-4h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2ZM13 7v3h3v2h-3v3h-2v-3H8V10h3V7z"></path></svg>
+<span>Add Item</span>
+</button>
+<button aria-label="Manage this collection" class="btn btn--secondary btn--lg" type="button">
+<!-- settings sliders -->
+<svg aria-hidden="true" class="icon" role="img" viewbox="0 0 24 24"><path d="M21 7H10V5h11v2ZM3 7H2V5h1v2Zm6 0H5V5h4v2Zm12 6H14v-2h7v2ZM3 13H2v-2h1v2Zm8 0H5v-2h6v2Zm10 6H9v-2h12v2ZM3 19H2v-2h1v2Zm4 0H5v-2h2v2Z"></path></svg>
+<span>Manage Collection</span>
+</button>
+</section>
+<!-- Filters -->
+<section aria-label="Search and filters" class="filters">
+<div class="field field--search">
+<label class="sr-only" for="search-input">Search items</label>
+<input aria-label="Search items in this collection" id="search-input" inputmode="search" placeholder="Search items" type="search"/>
+<!-- search icon -->
+<svg aria-hidden="true" class="icon icon--left" role="img" viewbox="0 0 24 24"><path d="M10 18a8 8 0 1 1 5.29-14.02A8 8 0 0 1 10 18Zm11 2-6-6"></path></svg>
+</div>
+<div class="field">
+<label class="sr-only" for="filter-select">Filter</label>
+<select aria-label="Filter items" id="filter-select">
+<option value="">Filter</option>
+<option value="type:figure">Type: Figure</option>
+<option value="rarity:high">Rarity: 8–10</option>
+<option value="recent">Recently added</option>
+</select>
+</div>
+<!-- TODO: additional filters (type, rarity/importance, price) -->
+<!-- TODO: sorting dropdown -->
+</section>
+<!-- Items grid -->
+<section aria-label="Collection items grid" class="grid">
+<!-- Card 1 -->
+<article aria-label="Item 1" class="card" data-item-id="item-1" tabindex="0">
+<div class="card__media">
+<img alt="Item 1 image" src="https://picsum.photos/seed/item1/400/300"/>
+<span class="badge" title="Rarity 7">R7</span>
+</div>
+<div class="card__body">
+<h3 class="card__title"><a aria-label="Open Item 1 details" href="#">Item 1</a></h3>
+<p class="card__meta">Figure · 2019</p>
+</div>
+</article>
+<!-- Card 2 -->
+<article aria-label="Item 2" class="card" data-item-id="item-2" tabindex="0">
+<div class="card__media">
+<img alt="Item 2 image" src="https://picsum.photos/seed/item2/400/300"/>
+<span class="badge" title="Rarity 5">R5</span>
+</div>
+<div class="card__body">
+<h3 class="card__title"><a aria-label="Open Item 2 details" href="#">Item 2</a></h3>
+<p class="card__meta">Figure · 2020</p>
+</div>
+</article>
+<!-- Card 3 -->
+<article aria-label="Item 3" class="card" data-item-id="item-3" tabindex="0">
+<div class="card__media">
+<img alt="Item 3 image" src="https://picsum.photos/seed/item3/400/300"/>
+<span class="badge" title="Rarity 9">R9</span>
+</div>
+<div class="card__body">
+<h3 class="card__title"><a aria-label="Open Item 3 details" href="#">Item 3</a></h3>
+<p class="card__meta">Figure · 2018</p>
+</div>
+</article>
+<!-- Card 4 -->
+<article aria-label="Item 4" class="card" data-item-id="item-4" tabindex="0">
+<div class="card__media">
+<img alt="Item 4 image" src="https://picsum.photos/seed/item4/400/300"/>
+<span class="badge" title="Rarity 3">R3</span>
+</div>
+<div class="card__body">
+<h3 class="card__title"><a aria-label="Open Item 4 details" href="#">Item 4</a></h3>
+<p class="card__meta">Figure · 2022</p>
+</div>
+</article>
+<!-- Card 5 -->
+<article aria-label="Item 5" class="card" data-item-id="item-5" tabindex="0">
+<div class="card__media">
+<img alt="Item 5 image" src="https://picsum.photos/seed/item5/400/300"/>
+<span class="badge" title="Rarity 6">R6</span>
+</div>
+<div class="card__body">
+<h3 class="card__title"><a aria-label="Open Item 5 details" href="#">Item 5</a></h3>
+<p class="card__meta">Figure · 2021</p>
+</div>
+</article>
+<!-- Card 6 -->
+<article aria-label="Item 6" class="card" data-item-id="item-6" tabindex="0">
+<div class="card__media">
+<img alt="Item 6 image" src="https://picsum.photos/seed/item6/400/300"/>
+<span class="badge" title="Rarity 8">R8</span>
+</div>
+<div class="card__body">
+<h3 class="card__title"><a aria-label="Open Item 6 details" href="#">Item 6</a></h3>
+<p class="card__meta">Figure · 2017</p>
+</div>
+</article>
+</section>
+<!-- View more -->
+<div class="loadmore">
+<button aria-label="View more items" class="btn btn--secondary btn--block" type="button">View More</button>
+<!-- TODO: pagination -->
+</div>
+</main>
+<!-- Right aside: stats panel -->
+<aside aria-label="Collection Data" class="stats">
+<h2 class="stats__title">Collection Data</h2>
+<dl class="stats__list">
+<div class="stats__row">
+<dt>Created</dt>
+<dd>Jan 12, 2023</dd>
+</div>
+<div class="stats__row">
+<dt>Type</dt>
+<dd>Miniatures</dd>
+</div>
+<div class="stats__row">
+<dt>Number of Items</dt>
+<dd>128</dd>
+</div>
+<div class="stats__row">
+<dt>Last Record</dt>
+<dd>Oct 02, 2025</dd>
+</div>
+</dl>
+</aside>
+<!-- Optional footer -->
+<footer aria-label="Site footer" class="footer">
+<small>© 2025 CollectaHub · <a href="#" rel="nofollow">Privacy</a></small>
+</footer>
+</div>
+
+<script src="js.collection.page/collection-page.js" defer></script>
+</body>
+</html>
