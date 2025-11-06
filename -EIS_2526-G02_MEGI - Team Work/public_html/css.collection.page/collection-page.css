@@ -582,7 +582,7 @@ body {
 .items-stretch { align-items: stretch; }
 .items-baseline { align-items: baseline; }
 
-/* Justificativa no main-axis */
+/* Justify no main-axis */
 .justify-start { justify-content: flex-start; }
 .justify-center { justify-content: center; }
 .justify-end { justify-content: flex-end; }
