@@ -557,4 +557,80 @@ body {
 }
 .menu__item:hover, .menu__item:focus-visible { background: #f5f5f5; outline: none; }
 
+/* =========================================================
+   FLEX UTILITIES
+   - Utilitários inspirados em Tailwind para uso rápido no HTML
+   ========================================================= */
+.flex { display: flex; }
+.inline-flex { display: inline-flex; }
+
+/* Direção */
+.flex-row { flex-direction: row; }
+.flex-col { flex-direction: column; }
+.flex-row-reverse { flex-direction: row-reverse; }
+.flex-col-reverse { flex-direction: column-reverse; }
+
+/* Quebra / fluxo */
+.flex-wrap { flex-wrap: wrap; }
+.flex-nowrap { flex-wrap: nowrap; }
+.flex-wrap-reverse { flex-wrap: wrap-reverse; }
+
+/* Alinhamento no cross-axis */
+.items-start { align-items: flex-start; }
+.items-center { align-items: center; }
+.items-end { align-items: flex-end; }
+.items-stretch { align-items: stretch; }
+.items-baseline { align-items: baseline; }
+
+/* Justificativa no main-axis */
+.justify-start { justify-content: flex-start; }
+.justify-center { justify-content: center; }
+.justify-end { justify-content: flex-end; }
+.justify-between { justify-content: space-between; }
+.justify-around { justify-content: space-around; }
+.justify-evenly { justify-content: space-evenly; }
+
+/* Auto-alinhamento (por item) */
+.self-auto { align-self: auto; }
+.self-start { align-self: flex-start; }
+.self-center { align-self: center; }
+.self-end { align-self: flex-end; }
+.self-stretch { align-self: stretch; }
+
+/* Crescimento/encolhimento e base */
+.grow { flex-grow: 1; }
+.grow-0 { flex-grow: 0; }
+.shrink { flex-shrink: 1; }
+.shrink-0 { flex-shrink: 0; }
+.flex-1 { flex: 1 1 0%; }
+.flex-auto { flex: 1 1 auto; }
+.flex-initial { flex: 0 1 auto; }
+.flex-none { flex: none; }
+
+/* Gap (espaçamento entre filhos) */
+.gap-0 { gap: 0; }
+.gap-1 { gap: 4px; }
+.gap-2 { gap: 8px; }
+.gap-3 { gap: 12px; }
+.gap-4 { gap: 16px; }
+.gap-5 { gap: 20px; }
+.gap-6 { gap: 24px; }
+
+/* Eixos individuais de gap (se precisar) */
+.row-gap-2 { row-gap: 8px; }
+.col-gap-2 { column-gap: 8px; }
+.row-gap-4 { row-gap: 16px; }
+.col-gap-4 { column-gap: 16px; }
+
+/* Ordenação */
+.order-first { order: -9999; }
+.order-last { order: 9999; }
+.order-0 { order: 0; }
+.order-1 { order: 1; }
+.order-2 { order: 2; }
+.order-3 { order: 3; }
+
+/* Atalhos úteis */
+.center-row { display: flex; align-items: center; justify-content: center; }
+.center-col { display: flex; flex-direction: column; align-items: center; justify-content: center; }
 
