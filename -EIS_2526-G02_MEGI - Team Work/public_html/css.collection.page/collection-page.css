@@ -597,7 +597,7 @@ body {
 .self-end { align-self: flex-end; }
 .self-stretch { align-self: stretch; }
 
-/* Growth/encolhimento e base */
+/* Growth/Flex e base */
 .grow { flex-grow: 1; }
 .grow-0 { flex-grow: 0; }
 .shrink { flex-shrink: 1; }
@@ -622,7 +622,7 @@ body {
 .row-gap-4 { row-gap: 16px; }
 .col-gap-4 { column-gap: 16px; }
 
-/* Ordenação */
+/* Order */
 .order-first { order: -9999; }
 .order-last { order: 9999; }
 .order-0 { order: 0; }
