@@ -590,14 +590,14 @@ body {
 .justify-around { justify-content: space-around; }
 .justify-evenly { justify-content: space-evenly; }
 
-/* Auto-alinhamento (por item) */
+/* Auto-alligment (por item) */
 .self-auto { align-self: auto; }
 .self-start { align-self: flex-start; }
 .self-center { align-self: center; }
 .self-end { align-self: flex-end; }
 .self-stretch { align-self: stretch; }
 
-/* Crescimento/encolhimento e base */
+/* Growth/encolhimento e base */
 .grow { flex-grow: 1; }
 .grow-0 { flex-grow: 0; }
 .shrink { flex-shrink: 1; }
