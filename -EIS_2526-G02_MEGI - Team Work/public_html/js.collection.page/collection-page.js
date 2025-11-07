@@ -12,7 +12,17 @@
   // NetBeans/Java Web friendly base path (optional).
   // Set <meta name="app-base" content="/YourApp/"> in JSP/HTML if your app runs under a context path.
   const APP_BASE = (document.querySelector('meta[name="app-base"]')?.getAttribute('content') || '').replace(/\/+$/, '') + '';
+// Where the item page lives (read from <meta> or fallback to index.html)
+const ITEM_PAGE_PATH = (
+  document.querySelector('meta[name="item-page-path"]')?.getAttribute('content') || 'index.html'
+).replace(/^\/+/, '');
 
+// Build canonical item URL like: index.html?id=ITEM_ID&c=COLLECTION_ID
+const buildItemUrl = (itemId) => {
+  const base = APP_BASE ? `${APP_BASE}/` : '';
+  const c = collectionId || 'demo-collection';
+  return `${base}${ITEM_PAGE_PATH}?id=${encodeURIComponent(itemId)}&c=${encodeURIComponent(c)}`;
+};
 
   /** ----------------------------- Utilities ----------------------------- */
   // Safe UUID even if crypto is unavailable (NetBeans preview, http:)
@@ -446,22 +456,27 @@ function cardDescriptionText(it) {
   return it.description || "";
 }
 
-
   function cardTemplate(it) {
   const hasImportance = typeof it.importance === "number" && !Number.isNaN(it.importance);
   const badge = hasImportance
     ? `<span class="badge" title="Importance ${clamp(it.importance,1,10)}">I${clamp(it.importance,1,10)}</span>`
     : "";
 
+  const href = buildItemUrl(it.id);
+
   return `
     <article aria-label="${escapeHTML(it.name || "Item")}" class="card" data-item-id="${escapeHTML(it.id || "")}" tabindex="0">
-      <div class="card__media" data-href="#">
+      <div class="card__media" data-href="${escapeHTML(href)}">
         <img alt="${escapeHTML(it.name || "Item image")}" src="${escapeHTML(cardImageSrc(it))}"/>
         ${badge}
         <button class="card__action card__action--delete" title="Delete item ${escapeHTML(it.name || "")}" aria-label="Delete item ${escapeHTML(it.name || "")}">×</button>
       </div>
       <div class="card__body">
-        <h3 class="card__title"><a aria-label="Open ${escapeHTML(it.name || "Item")} details" href="#">${escapeHTML(it.name || "Item")}</a></h3>
+        <h3 class="card__title">
+          <a aria-label="Open ${escapeHTML(it.name || "Item")} details" href="${escapeHTML(href)}">
+            ${escapeHTML(it.name || "Item")}
+          </a>
+        </h3>
         <p class="card__meta">${escapeHTML(metaText(it))}</p>
         ${cardDescriptionText(it) ? `<p class="card__desc">${escapeHTML(cardDescriptionText(it))}</p>` : ``}
       </div>
@@ -688,45 +703,34 @@ function modalCreateItem() {
   }
 
   /** ----------------------------- Upgrade existing static cards ----------------------------- */
-  function upgradeExistingCards() {
-    if (!grid) return;
-    qsa(".card", grid).forEach(card => {
-      const id = card.dataset.itemId || uuid();
-      card.dataset.itemId = id;
-      const media = qs(".card__media", card);
-      const titleLink = qs(".card__title a", card);
-      const name = titleLink?.textContent?.trim() || "Item";
-      const href = `${APP_BASE}${APP_BASE?'/':''}items/item.html?id=${encodeURIComponent(id)}`;
+ function upgradeExistingCards() {
+  if (!grid) return;
+  qsa(".card", grid).forEach(card => {
+    const id = card.dataset.itemId || uuid();
+    card.dataset.itemId = id;
 
-      // Make media clickable with data-href
-      if (media && !media.hasAttribute("data-href")) {
-        media.setAttribute("data-href", href);
-        media.setAttribute("role", "link");
-        media.setAttribute("aria-label", `Open ${name}`);
-      }
-      // Fix anchor href
-      if (titleLink) titleLink.setAttribute("href", href);
+    const media = qs(".card__media", card);
+    const titleLink = qs(".card__title a", card);
+    const name = titleLink?.textContent?.trim() || "Item";
+    const href = buildItemUrl(id); // ← unified routing
 
-      // Add delete button if missing
-      if (media && !qs(".card__action--delete", media)) {
-        const del = document.createElement("button");
-        del.className = "card__action card__action--delete";
-        del.title = `Delete item ${name}`;
-        del.setAttribute("aria-label", `Delete item ${name}`);
-        del.textContent = "×";
-        media.appendChild(del);
-      }
-    });
-  }
-  
-  function cardImageSrc(it) {
-  return it.image || it.imageUrl || it.src || "https://picsum.photos/seed/placeholder/400/300";
+    if (media && !media.hasAttribute("data-href")) {
+      media.setAttribute("data-href", href);
+      media.setAttribute("role", "link");
+      media.setAttribute("aria-label", `Open ${name}`);
+    }
+    if (titleLink) titleLink.setAttribute("href", href);
+
+    if (media && !qs(".card__action--delete", media)) {
+      const del = document.createElement("button");
+      del.className = "card__action card__action--delete";
+      del.title = `Delete item ${name}`;
+      del.setAttribute("aria-label", `Delete item ${name}`);
+      del.textContent = "×";
+      media.appendChild(del);
+    }
+  });
 }
-
-function cardDescriptionText(it) {
-  return it.description || "";
-}
-
 
   /** ----------------------------- Event Wiring ----------------------------- */
   function attachEvents() {

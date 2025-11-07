@@ -1,0 +1,193 @@
+<!-- item-page.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <!-- Where the collection page lives (used for redirects after delete) -->
+<meta name="collection-page-path" content="collection-page.html">
+<meta name="app-base" content="">
+
+  <title>Collecta•Hub — Item Page</title>
+
+  <!-- Core stylesheet provided by the project (must be used) -->
+  <link rel="stylesheet" href="css.item.page/collection-page.css">
+
+  <!-- Small page-scoped CSS to create the internal two-column grid required by the mockup.
+       This does NOT duplicate or override the main design system; it only composes layout
+       inside the .main area as requested by the brief. -->
+  <style>
+    /* Internal grid inside the .main area matching the mockup's two-column division */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 360px 1fr; /* left column (photo/rating) + right column (data) */
+      gap: 20px;
+      align-items: start;
+    }
+
+    /* Make grid responsive on narrow screens */
+    @media (max-width: 900px) {
+      .main-grid { grid-template-columns: 1fr; }
+    }
+
+    /* Visual tweak so the hero text sits above hero media properly */
+    .hero { height: 220px; }
+    .hero__text { top: 60%; }
+    /* Keep star size consistent in the rating block */
+    .stars { font-size: 26px; letter-spacing: 4px; }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <div class="layout">
+    <!-- TOP BAR -->
+    <header class="topbar">
+      <div class="topbar__brand">Collecta<span class="topbar__dot">•</span>Hub</div>
+      <div class="topbar__actions">
+        <!-- topbar buttons use the inverted style defined in the CSS (white background, black text) -->
+        <button class="btn">Config</button>
+        <button class="btn">Profile</button>
+      </div>
+    </header>
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <!-- Create New Collection uses the required classes -->
+      <button class="btn btn--primary sidebar__cta">Create New Collection</button>
+
+      <nav class="sidebar__nav" aria-label="Main navigation">
+        <ul class="sidebar__list">
+          <li><a class="sidebar__link" href="#">Collector</a></li>
+          <li><a class="sidebar__link" href="#" aria-current="page">Collections</a></li>
+          <li><a class="sidebar__link" href="#">Explore</a></li>
+          <li><a class="sidebar__link" href="#">Events</a></li>
+          <li><a class="sidebar__link" href="#">Community</a></li>
+        </ul>
+      </nav>
+    </aside>
+
+    
+    <!-- HERO / BANNER (Título da Coleção e imagem) -->
+    <section class="hero" aria-hidden="false">
+      <div class="hero__media">
+        <!-- placeholder image; project can replace with real collection banner -->
+        <img src="assets/collection-hero.jpg" alt="Collection banner">
+      </div>
+      <div class="hero__text">
+        <h1 class="hero__title">Star Wars Miniatures</h1>
+        <p class="hero__subtitle">Luke Skywalker — Vintage edition</p>
+      </div>
+    </section>
+
+    <!-- MAIN: contains the two-column area (photo/rating/manage) + (item data form) -->
+    <main id="main" class="main" aria-labelledby="item-title">
+      <div class="main-grid">
+
+        <!-- LEFT COLUMN: Photo card + Rating + Manage button -->
+        <div class="card" aria-labelledby="photo-title" style="padding:18px;">
+          <h2 id="photo-title">Picture of the Item</h2>
+
+          <!-- Item photo -->
+          <div style="margin:20px 0;">
+            <img src="assets/item-placeholder.webp" alt="Item photo" class="img-ph" id="itemPhotoPreview">
+          </div>
+
+          <!-- Rating block (uses .field for form elements per constraints) -->
+          <!-- Item rating control (interactive) -->
+<div class="rating" id="rating" aria-label="Set item rating from 1 to 5">
+  <span class="star" data-value="1" aria-hidden="true">★</span>
+  <span class="star" data-value="2" aria-hidden="true">★</span>
+  <span class="star" data-value="3" aria-hidden="true">★</span>
+  <span class="star" data-value="4" aria-hidden="true">★</span>
+  <span class="star" data-value="5" aria-hidden="true">★</span>
+</div>
+<input type="hidden" id="ratingValue" name="rating" value="0">
+
+
+          <!-- Manage Item button (Gerir Item) using required classes -->
+          <div style="margin-top:14px;">
+            <button id="manageItemBtn" class="btn btn--secondary btn--lg btn--block">Manage Item</button>
+          </div>
+        </div>
+
+        <!-- RIGHT COLUMN: Item Data (form inside a .card) -->
+        <div class="card" aria-labelledby="data-title" style="padding:18px;">
+          <h2 id="data-title">Info of the Item</h2>
+
+          <!-- Item Data Form: includes all required attributes from the brief.
+               Sample data is pre-filled to demonstrate styling. -->
+          <form id="itemDataForm" novalidate>
+            <div class="field" style="margin-bottom:12px;">
+              <label for="itemName">Name *</label><br>
+              <input type="text" id="itemName" name="itemName" value="Luke Skywalker (1977)" />
+            </div>
+
+            <div class="field" style="margin-bottom:12px;">
+              <label for="importance">Importance (0–10) *</label><br>
+              <input type="number" id="importance" name="importance" min="0" max="10" value="8" />
+            </div>
+
+            <div class="field" style="margin-bottom:12px;">
+              <label for="weight">Weight (grams)</label><br>
+              <input type="number" id="weight" name="weight" value="45" />
+            </div>
+
+            <div class="field" style="margin-bottom:12px;">
+              <label for="price">Price (€)</label><br>
+              <input type="number" id="price" name="price" step="0.01" value="24.99" />
+            </div>
+
+            <div class="field" style="margin-bottom:12px;">
+              <label for="acquisition">Date of Acquisition</label><br>
+              <input type="date" id="acquisition" name="acquisition" value="2021-08-15" />
+            </div>
+
+            <div class="field" style="margin-bottom:14px;">
+              <label for="description">Description *</label><br>
+              <textarea id="description" name="description">Vintage action figure in very good condition — limited release.</textarea>
+            </div>
+
+            <!-- Inline image upload preview (uses classes already in CSS) -->
+            <div class="field" style="margin-bottom:12px;">
+              <label for="photoUpload">Change Photo</label><br>
+              <input type="file" id="photoUpload" accept="image/*" />
+            </div>
+
+            <!-- Action buttons: Save Changes and Delete Item (Delete placed as separate action) -->
+            <div class="actions" style="margin-top:8px;">
+              <button type="submit" class="btn btn--primary">Save Changes</button>
+              <button type="button" id="deleteItemBtn" class="btn btn--secondary">Delete Item</button>
+              <button id="backToCollectionBtn" type="button" class="secondary-btn">
+  ← Back to Collection
+</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </main>
+
+    <!-- ASIDE / STATS: summary of item fields (must use .stats area) -->
+    <aside class="stats" aria-labelledby="summary-title">
+      <h3 id="summary-title" class="stats__title">Item Summary</h3>
+      <dl>
+        <div class="stats__row"><dt>Name</dt><dd id="summaryName">Luke Skywalker (1977)</dd></div>
+        <div class="stats__row"><dt>Importance</dt><dd id="summaryImportance">8</dd></div>
+        <div class="stats__row"><dt>Weight</dt><dd id="summaryWeight">45 g</dd></div>
+        <div class="stats__row"><dt>Price</dt><dd id="summaryPrice">€ 24.99</dd></div>
+        <div class="stats__row"><dt>Acquisition</dt><dd id="summaryDate">2021-08-15</dd></div>
+      </dl>
+    </aside>
+
+    <!-- FOOTER area -->
+    <footer class="footer">
+      <p>© 2025 Collecta•Hub — Team EIS_2526-GXXX</p>
+    </footer>
+  </div>
+
+  <!-- Attach the JavaScript that implements rating + validation + simulated CRUD -->
+  <script src="js.item.page/Java.js" defer></script>
+
+</body>
+</html>
+
