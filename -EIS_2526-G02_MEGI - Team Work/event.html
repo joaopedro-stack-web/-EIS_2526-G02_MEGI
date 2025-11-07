@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<!--
+Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+Click nbfs://nbhost/SystemFileSystem/Templates/Other/html.html to edit this template
+-->
+<html lang="en">
+    <head>
+        <title>Events</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+        <link rel="stylesheet" href="css/eventcss.css">
+    </head>
+    <body>
+        <div class="entire-page">
+            <aside class="side-menu">
+                <a class="new-collection" href="#">Create New Collection</a>
+                
+                <nav class="nav">
+                    <a class="nav-link" href="#">Collector...</a>
+                    <a class="nav-link" href="#">Collections</a>
+                    <a class="nav-link" href="#">Explore</a>
+                    <a class="nav-link active" href="#">Events</a>
+                    <a class="nav-link" href="#">Community</a>
+                </nav>
+            </aside>
+            
+            <header class="topmenu">
+                <div class="brand">Events</div>
+                <nav class="actions">
+                <a class="topmenu-link" href="#">
+                    <i class="fa-solid fa-gear"></i> Config
+                </a>
+                <a class="topmenu-link" href="#">
+                    <i class="fa-solid fa-user"></i> Profile
+                </a>
+                </nav>
+            </header>
+            
+            <main class="middle">
+                <div class="rank-add">
+                    <div class="filter">
+                        <button id="coming" class="filter-button">Coming</button>
+                        <button id="past" class="filter-button">Past</button>
+                        <button id="all" class="filter-button">All</button>
+                    </div>
+                    <button id="new-event" class="new-button">+New Event</button>
+                </div>
+                
+                <div id="event-list" class="list"></div>
+                
+                <dialog id="event-dialog">
+                    <form id="event-form">
+                        <h3 id="form-title">New event</h3>
+                        <label>Collection*
+                            <input type="text" id="form-collection" required/>
+                        </label>
+                        <label>Name*
+                            <input type="text" id="form-name" required/>
+                        </label>
+                        <label>Location*
+                            <input type="text" id="form-location" required/>
+                        </label>
+                        <label>Date*
+                            <input type="date" id="form-date" required/>
+                        </label>
+                        <label>Description*
+                            <textarea id="form-desc" required></textarea>
+                        </label>
+                        <div id="image-row">
+                            <label for="form.image">Image</label>
+                            <input id="form-image" type="file" accept="image/*">
+                        </div>
+                     
+                        <p id="form-error" aria-live="polite"></p>
+                        <div class="form-actions">
+                            <button id="cancel" type="button" value="cancel">Cancel</button>
+                            <button id="save" value="default">Save</button>
+                        </div>
+                    </form>
+                </dialog>
+            </main>
+        </div>
+        
+        <dialog id="detail-dialog">
+            <article class="event-details">
+                <img id="detail-image"
+                     src="data:image/gif;base64,R0lGODlhAQABAAAAACw="
+                     alt=""
+                     style="display:none"
+                />
+                <div class="event-details-body">
+                    <h2 id="detail-title">Event details</h2>
+                    <div class="details-chips">
+                        <span id="detail-collection" class="chip"></span>
+                        <span id="detail-date" class="chip"></span>
+                        <span id="detail-location" class="chip"></span>
+                        <span id="detail-rating" class="chip"></span>
+                    </div>
+                    <p id="detail-desc"></p>
+                    <div class="dialog-actions">
+                        <button id="detail-close" value="cancel">Close</button>
+                    </div>
+                </div>
+            </article>
+        </dialog>
+        
+        <template id="events">
+            <article class="event-posts">
+                <img class="event-picture" src="images/default.jpg" alt="Event image">
+                
+                <div class="event-content">
+                    <div class="event-post-title">
+                        <span class="badge"></span>
+                    </div>
+                
+                    <div class="event-post-body">
+                        <h3 class="event-title"></h3>
+                    
+                        <div class="event-info">
+                            <div class="chip">
+                                <span class="chip-date">Date:</span>
+                                <span class="chip-location">Location:</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="post-actions">
+                        <button class="edit-button">Edit</button>
+                        <button class="delete-button">Delete</button>
+                    </div>
+                    
+                </div>
+                <div class="rating">
+                    <span class="star" data-value="1">*</span>
+                    <span class="star" data-value="2">*</span>
+                    <span class="star" data-value="3">*</span>
+                    <span class="star" data-value="4">*</span>
+                    <span class="star" data-value="5">*</span>
+                </div>
+            </article>
+        </template>
+        
+        <script src="js/eventjs.js"></script>
+    </body>
+</html>
