@@ -22,6 +22,48 @@ function writeJSON(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
 
 const $ = (sel, el=document) => el.querySelector(sel);
 
+// --- Events routing for item page ---
+const EVENTS_PAGE_PATH = (
+  document.querySelector('meta[name="events-page-path"]')?.getAttribute('content') || 'event.html'
+).replace(/^\/+/, '');
+
+function buildEventsUrlFromItem() {
+  const base = APP_BASE ? `${APP_BASE}/` : '';
+  const cid = COLLECTION_ID || 'default-collection';
+  return `${base}${EVENTS_PAGE_PATH}?c=${encodeURIComponent(cid)}`;
+}
+
+(function wireEventsButtonForItemPage() {
+  const trySet = (el) => {
+    if (!el) return false;
+    const text = (el.textContent || '').trim().toLowerCase();
+    if (
+      el.matches('[data-nav="events"]') ||
+      el.id === 'eventsBtn' ||
+      el.classList.contains('events-btn') ||
+      text === 'events'
+    ) {
+      // Turn into a navigation to the events page for this collection
+      if (el.tagName === 'A') el.setAttribute('href', buildEventsUrlFromItem());
+      el.addEventListener('click', (e) => {
+        if (el.tagName !== 'A') e.preventDefault();
+        window.location.href = buildEventsUrlFromItem();
+      });
+      return true;
+    }
+    return false;
+  };
+
+  let wired = trySet(document.querySelector('[data-nav="events"]'))
+           || trySet(document.querySelector('#eventsBtn'))
+           || trySet(document.querySelector('.events-btn'));
+
+  if (!wired) {
+    document.querySelectorAll('.nav a, .topmenu a, a, button').forEach((el) => { trySet(el); });
+  }
+})();
+
+
 /* ----------------------- DOM refs ----------------------- */
 const form = $('#itemDataForm');
 const photoInput = $('#photoUpload');
@@ -190,4 +232,320 @@ if (deleteBtn) {
     s.addEventListener('mouseleave', () => paintStars(currentRating));
   });
   paintStars(currentRating);
+})();
+
+/* ==== COLLECTA Safe Hotfix (Item Page) =======================================
+   Purpose:
+   - Avoid global name collisions (all local)
+   - Ensure Back to Collection + Events buttons work
+   - Ensure rating stars keep working
+============================================================================== */
+(() => {
+  // -------- Safe helpers --------
+  function getMeta(name, fallback) {
+    const v = document.querySelector(`meta[name="${name}"]`)?.getAttribute('content');
+    return (v ?? fallback ?? '').toString();
+  }
+  function getAppBase() { return getMeta('app-base', '').replace(/\/+$/, ''); }
+  function getCollectionPagePath() { return getMeta('collection-page-path', 'collection-page.html').replace(/^\/+/, ''); }
+  function getEventsPagePath() { return getMeta('events-page-path', 'event.html').replace(/^\/+/, ''); }
+
+  const params = new URLSearchParams(window.location.search);
+  const COLLECTION_ID = params.get('c') || 'default-collection';
+
+  function goToCollection() {
+    const base = getAppBase() ? `${getAppBase()}/` : '';
+    window.location.href = base + getCollectionPagePath();
+  }
+  function goToEvents() {
+    const base = getAppBase() ? `${getAppBase()}/` : '';
+    window.location.href = `${base}${getEventsPagePath()}?c=${encodeURIComponent(COLLECTION_ID)}`;
+  }
+
+  // -------- Back to Collection (auto-inject if missing) --------
+  function ensureBackButton() {
+    const BTN_ID = 'backToCollectionBtn';
+    let backBtn = document.getElementById(BTN_ID);
+    if (!backBtn) {
+      backBtn = document.createElement('button');
+      backBtn.id = BTN_ID;
+      backBtn.type = 'button';
+      backBtn.className = 'btn btn--secondary';
+      backBtn.textContent = '← Back to Collection';
+      const actions = document.getElementById('deleteItemBtn')?.parentElement
+                   || document.getElementById('itemDataForm')
+                   || document.querySelector('main')
+                   || document.body;
+      actions.appendChild(backBtn);
+    }
+    backBtn.addEventListener('click', goToCollection);
+  }
+
+  // -------- Wire Events button (wherever it is) --------
+  function wireEventsButtonItem() {
+    const prefer = document.querySelector('[data-nav="events"]')
+      || document.getElementById('eventsBtn')
+      || document.querySelector('.events-btn');
+
+    if (prefer) {
+      if (prefer.tagName === 'A') {
+        const base = getAppBase() ? `${getAppBase()}/` : '';
+        prefer.setAttribute('href', `${base}${getEventsPagePath()}?c=${encodeURIComponent(COLLECTION_ID)}`);
+      }
+      prefer.addEventListener('click', (e) => {
+        if (prefer.tagName !== 'A') e.preventDefault();
+        goToEvents();
+      });
+      return;
+    }
+
+    // Fallback: look for "Events" text
+    document.querySelectorAll('a,button').forEach(el => {
+      const t = (el.textContent || '').trim().toLowerCase();
+      if (t === 'events') {
+        if (el.tagName === 'A') {
+          const base = getAppBase() ? `${getAppBase()}/` : '';
+          el.setAttribute('href', `${base}${getEventsPagePath()}?c=${encodeURIComponent(COLLECTION_ID)}`);
+        }
+        el.addEventListener('click', (e) => {
+          if (el.tagName !== 'A') e.preventDefault();
+          goToEvents();
+        });
+      }
+    });
+  }
+
+  // -------- Rating stars (keeps working even if earlier code failed) --------
+  function ensureRating() {
+    const stars = document.querySelectorAll('.rating .star');
+    const hidden = document.getElementById('ratingValue');
+    if (!hidden) return;
+
+    let current = Number(hidden.value || 0);
+
+    function paint(n) {
+      stars.forEach(s => {
+        const v = Number(s.dataset.value);
+        s.classList.toggle('active', v <= n);
+        s.style.color = v <= n ? '#ffcc00' : '#ccc';
+      });
+    }
+    function set(n) {
+      current = Math.max(0, Math.min(5, Number(n) || 0));
+      hidden.value = String(current);
+      paint(current);
+      // console.log('[rating] set to', current);
+    }
+
+    stars.forEach(s => {
+      s.addEventListener('click', () => set(Number(s.dataset.value)));
+      s.addEventListener('mouseenter', () => paint(Number(s.dataset.value)));
+      s.addEventListener('mouseleave', () => paint(current));
+    });
+
+    paint(current);
+  }
+
+  // -------- Init on DOM ready --------
+  function ready(fn){ document.readyState !== 'loading' ? fn() : document.addEventListener('DOMContentLoaded', fn); }
+  ready(() => {
+    try { ensureBackButton(); } catch (e) { console.error('[collecta] back button fail', e); }
+    try { wireEventsButtonItem(); } catch (e) { console.error('[collecta] events button fail', e); }
+    try { ensureRating(); } catch (e) { console.error('[collecta] rating fail', e); }
+  });
+})();
+/* === Universal Nav (Item Page / Index) ======================================
+   Purpose:
+   - Wire "Events" and "Collections"
+   - Auto-inject "← Back to Collection" if absent
+   - Keep ?c=<collectionId> from URL
+============================================================================= */
+(() => {
+  // --- Helpers ---
+  const getMeta = (n, f='') => (document.querySelector(`meta[name="${n}"]`)?.getAttribute('content') ?? f) + '';
+  const APP_BASE = getMeta('app-base').replace(/\/+$/, '');
+  const EVENTS_PAGE = getMeta('events-page-path', 'event.html').replace(/^\/+/, '');
+  const COLLECTION_PAGE = getMeta('collection-page-path', 'collection-page.html').replace(/^\/+/, '');
+  const withBase = (p) => (APP_BASE ? `${APP_BASE}/` : '') + p;
+
+  const params = new URLSearchParams(window.location.search);
+  const COLLECTION_ID = params.get('c') || 'default-collection';
+  const eventsUrl = withBase(`${EVENTS_PAGE}?c=${encodeURIComponent(COLLECTION_ID)}`);
+  const collectionsUrl = withBase(`${COLLECTION_PAGE}?c=${encodeURIComponent(COLLECTION_ID)}`);
+
+  // Wire buttons/links by [data-nav] or visible text
+  function wireByTextOrData(selectorText, url) {
+    const prefer = document.querySelector(`[data-nav="${selectorText}"]`);
+    if (prefer) {
+      if (prefer.tagName === 'A') prefer.setAttribute('href', url);
+      prefer.addEventListener('click', (e) => { if (prefer.tagName !== 'A') e.preventDefault(); window.location.href = url; });
+    }
+    document.querySelectorAll('a,button').forEach(el => {
+      const t = (el.textContent || '').trim().toLowerCase();
+      if (t === selectorText) {
+        if (el.tagName === 'A') el.setAttribute('href', url);
+        el.addEventListener('click', (e) => { if (el.tagName !== 'A') e.preventDefault(); window.location.href = url; });
+      }
+    });
+  }
+
+  // Ensure a Back-to-Collection button is present
+  function ensureBackToCollection() {
+    const id = 'backToCollectionBtn';
+    if (!document.getElementById(id)) {
+      const btn = document.createElement('button');
+      btn.id = id;
+      btn.type = 'button';
+      btn.className = 'btn btn--secondary';
+      btn.textContent = '← Back to Collection';
+      (document.querySelector('#itemDataForm') || document.querySelector('main') || document.body).prepend(btn);
+      btn.addEventListener('click', () => window.location.href = collectionsUrl);
+    }
+  }
+
+  function ready(fn){ document.readyState !== 'loading' ? fn() : document.addEventListener('DOMContentLoaded', fn); }
+  ready(() => {
+    wireByTextOrData('events', eventsUrl);
+    wireByTextOrData('collections', collectionsUrl);
+    ensureBackToCollection();
+  });
+})();
+/* === Universal Profile Wiring (drop-in) =====================================
+   Purpose:
+   - Make the "Profile" button work on every page (Collection, Item/Index, Events)
+   - No global leaks, resilient selectors, and no dependency on other code
+============================================================================== */
+(() => {
+  // Prevent double-binding if this block is included more than once on a page
+  if (document.documentElement.dataset.profileWired === '1') return;
+  document.documentElement.dataset.profileWired = '1';
+
+  /** Build a lightweight floating menu for the profile button */
+  function buildProfileMenu() {
+    const wrap = document.createElement('div');
+    wrap.className = 'profile-menu';
+    Object.assign(wrap.style, {
+      position: 'absolute',
+      minWidth: '200px',
+      background: 'var(--surface, #fff)',
+      color: 'inherit',
+      borderRadius: '12px',
+      boxShadow: '0 16px 40px rgba(0,0,0,.18)',
+      padding: '8px',
+      zIndex: 10000
+    });
+    wrap.innerHTML = `
+      <ul class="menu__list" role="menu" aria-label="Profile options" style="list-style:none;margin:0;padding:0">
+        <li><button class="menu__item" role="menuitem" data-cmd="see-profile"
+          style="width:100%;text-align:left;border:0;background:none;padding:10px;border-radius:8px;cursor:pointer">See profile</button></li>
+        <li><button class="menu__item" role="menuitem" data-cmd="logout"
+          style="width:100%;text-align:left;border:0;background:none;padding:10px;border-radius:8px;cursor:pointer">Logout</button></li>
+      </ul>
+    `;
+    // Small hover effect
+    wrap.addEventListener('mouseover', (e) => {
+      const it = e.target.closest('.menu__item'); if (!it) return;
+      it.style.background = 'rgba(0,0,0,.06)';
+    });
+    wrap.addEventListener('mouseout', (e) => {
+      const it = e.target.closest('.menu__item'); if (!it) return;
+      it.style.background = 'transparent';
+    });
+    return wrap;
+  }
+
+  let openMenuEl = null;
+
+  function closeProfileMenu() {
+    if (openMenuEl) {
+      openMenuEl.remove();
+      openMenuEl = null;
+    }
+    document.removeEventListener('click', onDocClick, true);
+    window.removeEventListener('resize', closeProfileMenu);
+    window.removeEventListener('scroll', closeProfileMenu, true);
+  }
+
+  function onDocClick(e) {
+    if (!openMenuEl) return;
+    if (!openMenuEl.contains(e.target)) closeProfileMenu();
+  }
+
+  function openProfileMenuFor(btn) {
+    closeProfileMenu();
+    const menu = buildProfileMenu();
+    document.body.appendChild(menu);
+
+    // Position below the button
+    const r = btn.getBoundingClientRect();
+    const gap = 8;
+    menu.style.left = Math.round(r.left + window.scrollX) + 'px';
+    menu.style.top  = Math.round(r.bottom + window.scrollY + gap) + 'px';
+
+    // Actions
+    menu.addEventListener('click', (e) => {
+      const cmd = e.target.closest('[data-cmd]')?.dataset.cmd;
+      if (!cmd) return;
+      e.preventDefault();
+      if (cmd === 'see-profile') {
+        // Hook your real profile route here if you have one:
+        // window.location.href = '/profile.html';
+        console.log('[profile] open profile');
+      } else if (cmd === 'logout') {
+        try {
+          // Demo: clear app keys if you use localStorage for demo auth
+          Object.keys(localStorage).forEach(k => { if (k.startsWith('collecta:')) localStorage.removeItem(k); });
+        } catch {}
+        console.log('[profile] logout');
+        // Reload to reflect state
+        setTimeout(() => window.location.reload(), 200);
+      }
+      closeProfileMenu();
+    });
+
+    // Close on outside interactions
+    document.addEventListener('click', onDocClick, true);
+    window.addEventListener('resize', closeProfileMenu);
+    window.addEventListener('scroll', closeProfileMenu, true);
+
+    // Initial focus for a11y
+    const first = menu.querySelector('.menu__item');
+    if (first) first.focus();
+
+    openMenuEl = menu;
+  }
+
+  /** Find the "Profile" trigger robustly */
+  function findProfileButton() {
+    // Priority: aria-label exact
+    let btn = document.querySelector('button[aria-label="Open profile"], [data-nav="profile"]');
+
+    if (!btn) {
+      // Fallback: any button/anchor in topbar-like areas whose visible text is "Profile"
+      const candidates = Array.from(document.querySelectorAll(
+        '.topbar .btn, .topbar__actions .btn, header .btn, a, button'
+      ));
+      btn = candidates.find(el => /profile/i.test((el.textContent || '').trim()));
+    }
+
+    return btn || null;
+  }
+
+  function ready(fn){ document.readyState !== 'loading' ? fn() : document.addEventListener('DOMContentLoaded', fn); }
+  ready(() => {
+    const trigger = findProfileButton();
+    if (!trigger) {
+      console.warn('[profile] trigger not found on this page');
+      return;
+    }
+    // Make it look/behave like an interactive control for a11y
+    if (!trigger.getAttribute('aria-haspopup')) trigger.setAttribute('aria-haspopup', 'menu');
+    trigger.setAttribute('aria-expanded', 'false');
+
+    trigger.addEventListener('click', (e) => {
+      e.preventDefault();
+      openProfileMenuFor(trigger);
+      trigger.setAttribute('aria-expanded', 'true');
+    });
+  });
 })();
