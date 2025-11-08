@@ -5,8 +5,12 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <!-- Where the collection page lives (used for redirects after delete) -->
-<meta name="collection-page-path" content="collection-page.html">
 <meta name="app-base" content="">
+<meta name="item-page-path" content="index.html">          <!-- só na Collection -->
+<meta name="events-page-path" content="event.html">         <!-- nas duas -->
+<meta name="collection-page-path" content="collection-page.html"> <!-- só na Item -->
+>
+
 
   <title>Collecta•Hub — Item Page</title>
 
@@ -52,20 +56,23 @@
     </header>
 
     <!-- SIDEBAR -->
-    <aside class="sidebar">
-      <!-- Create New Collection uses the required classes -->
-      <button class="btn btn--primary sidebar__cta">Create New Collection</button>
+    <aside aria-label="Primary" class="sidebar">
+  <!-- ✅ "Create" button -->
+  <button class="btn btn--primary sidebar__cta" data-nav="create" type="button">
+    <svg aria-hidden="true" class="icon" role="img" viewBox="0 0 24 24"><path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z"></path></svg>
+    <span>Create New Collection</span>
+  </button>
 
-      <nav class="sidebar__nav" aria-label="Main navigation">
-        <ul class="sidebar__list">
-          <li><a class="sidebar__link" href="#">Collector</a></li>
-          <li><a class="sidebar__link" href="#" aria-current="page">Collections</a></li>
-          <li><a class="sidebar__link" href="#">Explore</a></li>
-          <li><a class="sidebar__link" href="#">Events</a></li>
-          <li><a class="sidebar__link" href="#">Community</a></li>
-        </ul>
-      </nav>
-    </aside>
+  <!-- ✅ Navigation list -->
+  <nav aria-label="Main navigation" class="sidebar__nav">
+    <ul class="sidebar__list">
+      <li><a class="sidebar__link" data-nav="collector"   href="#">Collector</a></li>
+      <li><a class="sidebar__link" data-nav="collections" href="#">Collections</a></li>
+      <li><a class="sidebar__link" data-nav="events"      href="#">Events</a></li>
+      <li><a class="sidebar__link" data-nav="community"   href="#">Community</a></li>
+    </ul>
+  </nav>
+</aside>
 
     
     <!-- HERO / BANNER (Título da Coleção e imagem) -->
@@ -187,6 +194,35 @@
 
   <!-- Attach the JavaScript that implements rating + validation + simulated CRUD -->
   <script src="js.item.page/Java.js" defer></script>
+<script src="js/common/nav.js" defer></script>
+<script>
+  // Basic init: navegação já funciona para collector/collections/events/community
+  // e os botões de Profile/Config/Create chamam callbacks default (alert).
+  document.addEventListener('DOMContentLoaded', () => {
+    // Em páginas de item ou eventos, você pode querer ter o botão "← Back to Collection":
+    const isItemOrEvents = /index\.html|event\.html/i.test(location.pathname);
+    window.CollectaNav.init({
+      autoBackButton: isItemOrEvents,
+
+      // Opcional: substitua por comportamentos reais
+      onProfile(el) {
+        // Exemplo: abrir menu drop-down ou navegar para profile.html
+        // window.location.href = 'profile.html';
+        console.log('[nav] Profile clicked', el);
+      },
+      onConfig(el) {
+        // Exemplo: abrir modal de configurações
+        console.log('[nav] Config clicked', el);
+        // openSettingsModal();
+      },
+      onCreate(el) {
+        // Exemplo: abrir wizard de criação de coleção
+        console.log('[nav] Create New Collection clicked', el);
+        // openCreateCollectionWizard();
+      }
+    });
+  });
+</script>
 
 </body>
 </html>
