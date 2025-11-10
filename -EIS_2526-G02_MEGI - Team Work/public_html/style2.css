@@ -1,0 +1,215 @@
+/* =========================
+   COLLECTOR'S HOME (No Login)
+   ========================= */
+
+/* ---------- VARIABLES ---------- */
+:root {
+  --bg: #f9f9f9;
+  --text: #222;
+  --primary: #000;
+  --accent: #ffcc00;
+  --card-bg: #fff;
+  --shadow: rgba(0, 0, 0, 0.1);
+  --radius: 12px;
+  --sidebar-w: 250px;
+}
+
+/* ---------- RESET ---------- */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+body {
+  font-family: "Inter", Arial, sans-serif;
+  background-color: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+
+  display: grid;
+  grid-template-areas:
+    "sidebar header"
+    "sidebar main"
+    "sidebar footer";
+  grid-template-columns: var(--sidebar-w) 1fr;
+  grid-template-rows: 70px 1fr 60px;
+}
+
+/* ---------- HEADER ---------- */
+header {
+  grid-area: header;
+  background: var(--primary);
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 24px;
+}
+header h1 {
+  font-size: 1.4rem;
+}
+#login-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+#login-info button {
+  background: white;
+  color: var(--primary);
+  border: none;
+  padding: 8px 14px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.3s, color 0.3s;
+}
+#login-info button:hover {
+  background: var(--accent);
+  color: #000;
+}
+
+/* ---------- SIDEBAR ---------- */
+aside {
+  grid-area: sidebar;
+  background: #fff;
+  border-right: 1px solid #ddd;
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+aside nav ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+aside nav ul li a {
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s;
+}
+aside nav ul li a:hover {
+  color: var(--accent);
+}
+
+/* ---------- MAIN ---------- */
+main {
+  grid-area: main;
+  padding: 32px;
+  overflow-y: auto;
+}
+
+/* ---- Welcome Section ---- */
+#welcome {
+  margin-bottom: 32px;
+}
+#welcome h2 {
+  font-size: 1.8rem;
+  margin-bottom: 8px;
+  color: var(--primary);
+}
+#welcome p {
+  color: #444;
+  line-height: 1.5;
+  max-width: 700px;
+}
+
+/* ---- Featured Collections ---- */
+#collections-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 24px;
+}
+#collections-list > h2 {
+  grid-column: 1 / -1;
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+  color: var(--primary);
+}
+.collection-item {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: 0 3px 10px var(--shadow);
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.collection-item:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 6px 16px var(--shadow);
+}
+.collection-item img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+}
+.collection-item h3 {
+  padding: 12px 16px 4px;
+  font-size: 1.1rem;
+  color: var(--primary);
+}
+.collection-item p {
+  padding: 0 16px 16px;
+  color: #555;
+  font-size: 0.95rem;
+}
+#collections-list > a {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: none;
+  margin-top: 8px;
+  transition: color 0.3s;
+}
+#collections-list > a:hover {
+  color: var(--accent);
+}
+
+/* ---------- FOOTER ---------- */
+footer {
+  grid-area: footer;
+  background: var(--primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+}
+
+/* ---------- RESPONSIVE ---------- */
+@media (max-width: 1000px) {
+  body {
+    grid-template-areas:
+      "header"
+      "main"
+      "footer";
+    grid-template-columns: 1fr;
+    grid-template-rows: 70px auto 60px;
+  }
+
+  aside {
+    display: none;
+  }
+
+  header {
+    justify-content: space-between;
+    padding: 0 16px;
+  }
+
+  main {
+    padding: 24px;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  #collections-list {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+
+  .collection-item img {
+    height: 220px;
+  }
+}
