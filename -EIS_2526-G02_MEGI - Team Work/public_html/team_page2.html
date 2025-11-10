@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Team Page</title>
+        <!-- Use the provided profile_page1.css -->
+        <link rel="stylesheet" href="css.profile_team/profile_page1.css" />
+    </head>
+    <body>
+
+        <!-- Accessibility link to skip to main content -->
+        <a href="#main-content" class="skip-link">Skip to main content</a>
+
+        <!-- LAYOUT -->
+        <div class="layout">
+
+            <!-- Topbar -->
+            <header aria-label="Site top bar" class="topbar" role="banner">
+                <div aria-label="Site name" class="topbar__brand">Collecta<span class="topbar__dot">•</span>Hub</div>
+                <div class="topbar__actions">
+                    <button aria-label="Open configuration" class="btn btn--ghost" type="button">
+                        <!-- gear icon -->
+                        <svg aria-hidden="true" class="icon" role="img" viewbox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm8.94-3.5a7.88 7.88 0 0 0-.11-1.3l2.18-1.69a.75.75 0 0 0 .17-.96l-2.07-3.59a.75.75 0 0 0-.9-.34l-2.57 1.03a7.92 7.92 0 0 0-2.24-1.3L14.9.77a.75.75 0 0 0-.74-.6h-4.3a.75.75 0 0 0-.74.6l-.5 2.98a7.92 7.92 0 0 0-2.24 1.3L3.8 3.02a.75.75 0 0 0-.9.34L.83 6.95a.75.75 0 0 0 .17.96L3.18 9.6c-.05.43-.1.86-.1 1.4s.05.97.1 1.4l-2.18 1.69a.75.75 0 0 0-.17.96l2.07 3.59c.2.34.62.49.99.35l2.57-1.03c.66.53 1.41.97 2.24 1.3l.5 2.98c.07.35.38.6.74.6h4.3c.36 0 .67-.25.74-.6l.5-2.98c.83-.33 1.58-.77 2.24-1.3l2.57 1.03c.37.14.79 0 .99-.35l2.07-3.59a.75.75 0 0 0-.17-.96l-2.18-1.69c.07-.43.11-.86.11-1.4Z"></path></svg>
+                        <span>Config</span>
+                    </button>
+                    <button aria-label="Open profile" class="btn btn--ghost" type="button" onclick="window.location.href = 'profile_page1.html';">
+                        <!-- user icon -->
+                        <svg aria-hidden="true" class="icon" role="img" viewbox="0 0 24 24"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-5.33 0-8 2.67-8 6v1h16v-1c0-3.33-2.67-6-8-6Z"></path></svg>
+                        <span>Profile </span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Sidebar navigation -->
+            <aside aria-label="Primary" class="sidebar">
+                <button aria-label="Create a new collection" class="btn btn--primary sidebar__cta" type="button">
+                    <!-- plus icon -->
+                    <svg aria-hidden="true" class="icon" role="img" viewbox="0 0 24 24"><path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z"></path></svg>
+                    <span>Create New Collection</span>
+                </button>
+                <nav aria-label="Main navigation" class="sidebar__nav">
+                    <ul class="sidebar__list">
+                        <li><a aria-label="Go to Collector" class="sidebar__link" href="#">Collector..</a></li>
+                        <li><a aria-label="Go to Collections" class="sidebar__link" href="#">Collections</a></li>
+                        <li><a aria-label="Go to Explore" class="sidebar__link" href="#">Explore</a></li>
+                        <li><a aria-label="Go to Events" class="sidebar__link" href="#">Events</a></li>
+                        <li><a aria-current="page" aria-label="Current page Community" class="sidebar__link" href="team_page2.html">Community</a></li>
+                    </ul>
+                </nav>
+            </aside>
+
+            <!-- MAIN CONTENT -->
+
+            <main class="collections">
+                <div class="card-grid">
+                    <div class="user-card">
+                        <img src="imagens.profile_team/Margarida_oliveira.jpg" alt="Foto do utilizador">
+                        <p><strong>Name:</strong> Margarida Brochado de Oliveira</p>
+                        <p><strong>E-mail:</strong> up202105775@up.pt</p>
+                        <p><strong>Course:</strong> Mechanical Engineering</p>
+                    </div>
+
+                    <div class="user-card">
+                        <img src="imagens.profile_team/joao_pedro.jpg" alt="Foto do utilizador">
+                        <p><strong>Name:</strong> João Pedro de Lima Silveira</p>
+                        <p><strong>E-mail:</strong> up202503099@up.pt</p>
+                        <p><strong>Course:</strong> Computer Engineering</p>
+                    </div>
+
+                    <div class="user-card">
+                        <img src="imagens.profile_team/Amanda_Walker.jpg" alt="Foto do utilizador">
+                        <p><strong>Name:</strong> Amanda De Nardin Walker</p>
+                        <p><strong>E-mail:</strong> up202502267@edu.fe.up.pt</p>
+                        <p><strong>Course:</strong> Enterprise Information Systems</p>
+                    </div>
+
+                    <div class="user-card">
+                        <img src="imagens.profile_team/Ana_Sophia.jpg" alt="Foto do utilizador">
+                        <p><strong>Name:</strong> Ana Sophia Angel Alvarez</p>
+                        <p><strong>E-mail:</strong> up202503128@up.pt</p>
+                        <p><strong>Course:</strong> Data Science</p>
+                    </div>
+
+                    <div class="user-card">
+                        <img src="imagens.profile_team/Gonzalo_Montesanto.jpg" alt="Foto do utilizador">
+                        <p><strong>Name:</strong> Gonzalo Barreira Montesanto</p>
+                        <p><strong>E-mail:</strong> up202502914@up.pt</p>
+                        <p><strong>Course:</strong> Enterprise Information Systems</p>
+                    </div>
+
+                    <div class="user-card">
+                        <img src="imagens.profile_team/Malin_Nilsson.jpg" alt="Foto do utilizador">
+                        <p><strong>Name:</strong> Malin Linnea Nilsson</p>
+                        <p><strong>E-mail:</strong> up202502338@edu.fe.up.pt</p>
+                        <p><strong>Course:</strong> Enterprise Information Systems</p>
+                    </div>  
+                </div>
+            </main>
+        </div>
+
+        <!-- FOOTER -->
+        <footer class="footer">
+            <small>&copy; 2025 TeamWork Portal – All rights reserved.</small>
+        </footer>
+
+    
+
+    <!-- JS for handling profile picture change -->
+    <script src="js.profile_team/profile_page1.js"></script>
+    </body>
+</html>
