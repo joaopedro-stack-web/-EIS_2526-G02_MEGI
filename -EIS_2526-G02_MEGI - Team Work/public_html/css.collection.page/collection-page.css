@@ -4,7 +4,6 @@
 :root {
   --layout-pad: 16px;         /* Global padding used by .layout */
   --sidebar-w: 270px;         /* Sidebar width (kept for reference) */
-
   --bg: #ffffff;              /* Page background */
   --surface: #ffffff;         /* Cards/sections background */
   --text: #111111;            /* Primary text (near-black) */
@@ -29,9 +28,7 @@ body {
   margin: 0;
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
   line-height: 1.5;
-  background:
-    radial-gradient(circle at 8px 8px, rgba(0,0,0,0.06) 1px, transparent 1px) 0 0/24px 24px,
-    var(--bg);
+  background:radial-gradient(circle at 8px 8px, rgba(0,0,0,0.06) 1px, transparent 1px) 0 0/24px 24px, var(--bg);
   color: var(--text);
 }
 

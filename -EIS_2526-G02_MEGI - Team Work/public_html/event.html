@@ -10,6 +10,8 @@
   <meta name="item-page-path" content="index.html">
   <meta name="events-page-path" content="event.html">
   <meta name="collection-page-path" content="collection-page.html">
+  <meta name="collectors-page-path" content="Homepage.login.html">
+<meta name="community-page-path" content="Team_page2.html">
 
   <!-- Styles -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -27,9 +29,9 @@
         <a class="nav-link" data-nav="collector"   href="#">Collector</a>
         <a class="nav-link" data-nav="collections" href="#">Collections</a>
         <!-- "Explore" is not wired by nav.js; keep as-is or add your own handler -->
-        <a class="nav-link"                         href="#">Explore</a>
         <a class="nav-link active" data-nav="events" href="#">Events</a>
         <a class="nav-link" data-nav="community"   href="#">Community</a>
+        
       </nav>
     </aside>
 
@@ -38,12 +40,11 @@
       <div class="brand">Events</div>
       <nav class="actions">
         <!-- Action buttons (callbacks in CollectaNav.init) -->
-        <button class="topmenu-link" data-nav="config" type="button">
-          <i class="fa-solid fa-gear"></i> Config
-        </button>
-        <button class="topmenu-link" data-nav="profile" type="button">
-          <i class="fa-solid fa-user"></i> Profile
-        </button>
+<button type="button" class="btn btn--ghost" aria-label="Open profile" onclick="window.location.href='profile_page1.html';">
+  <!-- user icon -->
+  <svg aria-hidden="true" class="icon" role="img" viewBox="0 0 24 24"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-5.33 0-8 2.67-8 6v1h16v-1c0-3.33-2.67-6-8-6Z"></path></svg>
+  <span>Profile</span>
+</button>
       </nav>
     </header>
 
@@ -147,7 +148,7 @@
   </template>
 
   <!-- Load global nav kit first, then your page script -->
-  <script src="js/common/nav.js" defer></script>
+  <script src="common/nav.js" defer></script>
   <script src="js/eventjs.js" defer></script>
 
   <!-- Initialize CollectaNav for this page -->

@@ -31,6 +31,29 @@
     return `${base}${EVENTS_PAGE_PATH}?c=${encodeURIComponent(cid)}`;
   }
 
+
+document.addEventListener('DOMContentLoaded', () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const collectionId = urlParams.get('id'); // Pega o ID da coleção da URL
+
+  // Recuperar as coleções do localStorage
+  const collections = JSON.parse(localStorage.getItem('collections-data')) || [];
+
+  // Encontrar a coleção correspondente pelo ID
+  const collection = collections.find(c => c.id == collectionId);
+
+  // Exibir detalhes da coleção
+  if (collection) {
+    document.querySelector('.hero__title').textContent = collection.title;
+    document.querySelector('.hero__subtitle').textContent = collection.desc;
+    document.querySelector('.hero__media img').src = collection.img;
+    document.querySelector('.hero__media img').alt = collection.title;
+    document.querySelector('.hero__date').textContent = `Created on: ${collection.dateCreated}`;
+  } else {
+    document.querySelector('.hero__text').innerHTML = '<p>Collection not found.</p>';
+  }
+});
+
   /** ----------------------------- Utilities ----------------------------- */
   // Robust UUID: prefers crypto.randomUUID; otherwise generates a pseudo-UUID (RFC-ish)
   function safeUUID() {

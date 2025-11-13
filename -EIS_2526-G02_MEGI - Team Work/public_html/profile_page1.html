@@ -3,6 +3,12 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="app-base" content="">
+<meta name="item-page-path" content="index.html">
+<meta name="events-page-path" content="event.html">
+<meta name="collection-page-path" content="collection-page.html">
+<meta name="collectors-page-path" content="Homepage.login.html">
+<meta name="community-page-path" content="team_page2.html">
         <title>User Profile</title>
         <!-- Use the provided profile_page1.css -->
         <link rel="stylesheet" href="css.profile_team/profile_page1.css" />
@@ -19,16 +25,11 @@
             <header aria-label="Site top bar" class="topbar" role="banner">
                 <div aria-label="Site name" class="topbar__brand">Collecta<span class="topbar__dot">•</span>Hub</div>
                 <div class="topbar__actions">
-                    <button aria-label="Open configuration" class="btn btn--ghost" type="button" onclick="window.location.href='profile_page1.html';">
-                        <!-- gear icon -->
-                        <svg aria-hidden="true" class="icon" role="img" viewbox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm8.94-3.5a7.88 7.88 0 0 0-.11-1.3l2.18-1.69a.75.75 0 0 0 .17-.96l-2.07-3.59a.75.75 0 0 0-.9-.34l-2.57 1.03a7.92 7.92 0 0 0-2.24-1.3L14.9.77a.75.75 0 0 0-.74-.6h-4.3a.75.75 0 0 0-.74.6l-.5 2.98a7.92 7.92 0 0 0-2.24 1.3L3.8 3.02a.75.75 0 0 0-.9.34L.83 6.95a.75.75 0 0 0 .17.96L3.18 9.6c-.05.43-.1.86-.1 1.4s.05.97.1 1.4l-2.18 1.69a.75.75 0 0 0-.17.96l2.07 3.59c.2.34.62.49.99.35l2.57-1.03c.66.53 1.41.97 2.24 1.3l.5 2.98c.07.35.38.6.74.6h4.3c.36 0 .67-.25.74-.6l.5-2.98c.83-.33 1.58-.77 2.24-1.3l2.57 1.03c.37.14.79 0 .99-.35l2.07-3.59a.75.75 0 0 0-.17-.96l-2.18-1.69c.07-.43.11-.86.11-1.4Z"></path></svg>
-                        <span>Config</span>
-                    </button>
-                    <button aria-label="Open profile" class="btn btn--ghost" type="button">
-                        <!-- user icon -->
-                        <svg aria-hidden="true" class="icon" role="img" viewbox="0 0 24 24"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-5.33 0-8 2.67-8 6v1h16v-1c0-3.33-2.67-6-8-6Z"></path></svg>
-                        <span>Profile</span>
-                    </button>
+<button type="button" class="btn btn--ghost" aria-label="Open profile" onclick="window.location.href='profile_page1.html';">
+  <!-- user icon -->
+  <svg aria-hidden="true" class="icon" role="img" viewBox="0 0 24 24"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-5.33 0-8 2.67-8 6v1h16v-1c0-3.33-2.67-6-8-6Z"></path></svg>
+  <span>Profile</span>
+</button>
                 </div>
             </header>
 
@@ -41,10 +42,9 @@
                 </button>
                 <nav aria-label="Main navigation" class="sidebar__nav">
                     <ul class="sidebar__list">
-                        <li><a aria-label="Go to Collector" class="sidebar__link" href="#">Collector..</a></li>
-                        <li><a aria-label="Go to Collections" class="sidebar__link" href="#">Collections</a></li>
-                        <li><a aria-label="Go to Explore" class="sidebar__link" href="#">Explore</a></li>
-                        <li><a aria-label="Go to Events" class="sidebar__link" href="#">Events</a></li>
+                        <li><a aria-label="Go to Collector" class="sidebar__link" href="homepage.login.html">Collector..</a></li>
+                        <li><a aria-label="Go to Collections" class="sidebar__link" href="collection-page.html">Collections</a></li>
+                        <li><a aria-label="Go to Events" class="sidebar__link" href="event.html">Events</a></li>
                         <li><a aria-label="Go to Community" class="sidebar__link" href="team_page2.html">Community</a></li>
                     </ul>
                 </nav>
@@ -99,6 +99,7 @@
 
         <!-- JS for handling profile picture change -->
         <script src="js.profile_team/profile_page1.js"></script>
+        <script src="common/nav.js" defer></script>
     </body>
 </html>
 

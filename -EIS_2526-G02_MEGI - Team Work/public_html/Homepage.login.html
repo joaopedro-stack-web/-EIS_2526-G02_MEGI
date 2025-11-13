@@ -1,81 +1,140 @@
 <!DOCTYPE html>
 <html lang="pt">
 <head>
-    <meta charset="utf-8">
-    <title>Collector's Dashboard</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="utf-8">
+  <title>Collector's Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+
+  <!-- ROTAS para o Collecta Navigation Kit -->
+  <meta name="app-base" content="">
+  <meta name="item-page-path" content="index.html">
+  <meta name="events-page-path" content="event.html">
+  <meta name="collection-page-path" content="collection-page.html">
+  <meta name="collectors-page-path" content="Homepage.login.html">
+  <meta name="community-page-path" content="team_page2.html"> <!-- Corrigido aqui -->
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 <body>
-    <!-- Header -->
-    <header>
-        <h1>Home with Login</h1>
-        <div id="login-info">
-            <span>Ana Sophia</span>
-          
-            <button>Config</button>
-            <button>Profile</button>
-        </div>
-    </header>
+  <!-- Header -->
+  <header aria-label="Topo do aplicativo">
+  <h1>Home with Login</h1>
+  <div id="login-info" class="topbar-actions">
+    <span aria-label="Usuária logada">Ana Sophia</span>
+    <!-- Botão de perfil com o ícone e a label -->
+    <button type="button" class="btn btn--ghost" aria-label="Open profile" onclick="window.location.href='profile_page1.html';">
+      <!-- Ícone de usuário -->
+      <svg aria-hidden="true" class="icon" role="img" viewBox="0 0 24 24"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-5.33 0-8 2.67-8 6v1h16v-1c0-3.33-2.67-6-8-6Z"></path></svg>
+      <span>Profile</span>
+    </button>
+  </div>
+</header>
 
-    <!-- Sidebar -->
-    <aside>
-        <button id="create-collection">Create New Collection</button>
-        <nav>
-            <ul>
-                <li><a href="#">Collector...</a></li>
-                <li><a href="#">Collections</a></li>
-                <li><a href="#">Explore</a></li>
-                <li><a href="#">Events</a></li>
-                <li><a href="#">Community</a></li>
-            </ul>
-        </nav>
-    </aside>
 
-    <!-- Main Content -->
-    <main>
-        <section id="stats">
-            <button>Collections Total</button>
-            <button>Items Total</button>
-            <button>Community Review</button>
-            <button>Average Rating</button>
-        </section>
+  <!-- Sidebar -->
+  <aside aria-label="Navegação lateral">
+    <button id="create-collection" type="button" data-nav="create">Create New Collection</button>
+    <nav>
+      <ul>
+        <!-- Links de páginas (o JS vai reescrever o href e preservar ?c=...) -->
+        <li><a href="Homepage.login.html" data-nav="collector">Collector</a></li> <!-- Corrigido -->
+        <li><a href="collection-page.html" data-nav="collections">Collections</a></li> <!-- Corrigido -->
+        <li><a href="event.html" data-nav="events">Events</a></li> <!-- Corrigido -->
+        <li><a href="team_page2.html" data-nav="community">Community</a></li> <!-- Corrigido -->
+      </ul>
+    </nav>
+  </aside>
 
-        <section id="collections-list">
-            <h2>Collections</h2>
-            <div class="collection-item">
-                <img src="https://picsum.photos/200/300" alt="Collection 1">
-                <h3>Collection 1</h3>
-                <p>Some description about the collection...</p>
-            </div>
-            <div class="collection-item">
-                <img src="https://picsum.photos/200/300" alt="Collection 2">
-                <h3>Collection 2</h3>
-                <p>Some description about the collection...</p>
-            </div>
-            <div class="collection-item">
-                <img src="https://picsum.photos/200/300" alt="Collection 3">
-                <h3>Collection 3</h3>
-                <p>Some description about the collection...</p>
-            </div>
-            <div class="collection-item">
-                <img src="https://picsum.photos/200/300" alt="Collection 4">
-                <h3>Collection 4</h3>
-                <p>Some description about the collection...</p>
-            </div>
-            <div class="collection-item">
-                <img src="https://picsum.photos/200/300" alt="Collection 5">
-                <h3>Collection 5</h3>
-                <p>Some description about the collection...</p>
-            </div>
-            <a href="#">See More</a>
-        </section>
-    </main>
+  <!-- Main Content -->
+  <main data-collection-id="default-collection" id="main-content">
+    <section id="stats" aria-label="Estatísticas rápidas">
+      <button type="button">Collections Total</button>
+      <button type="button">Items Total</button>
+      <button type="button">Community Review</button>
+      <button type="button">Average Rating</button>
+    </section>
 
-    <!-- Footer -->
-    <footer>
-        <p>&copy; 2023 Collection Dashboard</p>
-    </footer>
+    <section id="collections-list" aria-labelledby="collections-title">
+      <h2 id="collections-title">Collections</h2>
 
-    <script src="script.js"></script>
+      <div class="collection-item">
+        <img src="https://picsum.photos/200/300" alt="Collection 1">
+        <h3>Collection 1</h3>
+        <p>Some description about the collection...</p>
+      </div>
+
+      <div class="collection-item">
+        <img src="https://picsum.photos/200/300" alt="Collection 2">
+        <h3>Collection 2</h3>
+        <p>Some description about the collection...</p>
+      </div>
+
+      <div class="collection-item">
+        <img src="https://picsum.photos/200/300" alt="Collection 3">
+        <h3>Collection 3</h3>
+        <p>Some description about the collection...</p>
+      </div>
+
+      <div class="collection-item">
+        <img src="https://picsum.photos/200/300" alt="Collection 4">
+        <h3>Collection 4</h3>
+        <p>Some description about the collection...</p>
+      </div>
+
+      <div class="collection-item">
+        <img src="https://picsum.photos/200/300" alt="Collection 5">
+        <h3>Collection 5</h3>
+        <p>Some description about the collection...</p>
+      </div>
+
+      <a href="#" data-nav="collections">See More</a>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <p>&copy; 2023 Collection Dashboard</p>
+  </footer>
+
+  <!-- Seu script de navegação (ajuste o caminho se necessário) -->
+  
+
+  <!-- Inicialização do CollectaNav: callbacks prontos -->
+  <script>
+    (function () {
+      // Utilitário para obter/propagar o ?c=...
+      function currentCollectionId() {
+        const qs = new URLSearchParams(location.search);
+        return qs.get('c')
+          || (document.querySelector('[data-collection-id]')?.dataset.collectionId)
+          || 'default-collection';
+      }
+
+      // Mini menu acessível para o botão Profile (opcional)
+      function openProfile(el) {
+        const c = encodeURIComponent(currentCollectionId());
+        window.location.href = 'profile_page1.html?c=' + c;
+      }
+
+      function openConfig() {
+        alert('Abrir configurações (substitua por seu modal/rota).');
+      }
+
+      function openCreate() {
+        alert('Criar nova coleção (substitua pelo seu fluxo).');
+      }
+
+      window.CollectaNav && window.CollectaNav.init({
+        onProfile: openProfile,
+        onConfig: openConfig,
+        onCreate: openCreate,
+        // autoBackButton: true // ative em páginas internas (Item/Events) se quiser o botão "← Back to Collection"
+      });
+    })();
+  </script>
+  <script src="common/nav.js" defer></script>
+
+  <!-- Seu script de página (se existir) -->
+  <script src="script.js"></script>
 </body>
 </html>

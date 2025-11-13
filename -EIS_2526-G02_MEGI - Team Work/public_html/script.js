@@ -1,7 +1,3 @@
-/* ===========================================
- 
-   =========================================== */
-
 (function () {
   const PAGE = document.body.getAttribute('data-page'); // 'collections', 'home', etc.
   const LS_KEY = 'collections-data';
@@ -60,16 +56,21 @@
     const p = document.createElement('p');
     p.textContent = desc;
 
-    // Botón eliminar
+    // Botão eliminar
     const del = document.createElement('button');
     del.className = 'delete-btn';
     del.type = 'button';
     del.title = 'Delete';
     del.textContent = '🗑 Delete';
 
+    // Criar o link para a nova página da coleção
+    const link = document.createElement('a');
+    link.href = `collection-page.html?id=${id}`;
+    link.textContent = 'View Collection';
+
     // Ensamblar
     card.appendChild(del);
-    card.append(image, h3, p);
+    card.append(image, h3, p, link);
     return card;
   }
 
@@ -93,30 +94,113 @@
   }
 
   // --------- Interacciones ----------
-  // Crear nueva colección (sidebar)
-  if (createBtn) {
-    createBtn.addEventListener('click', () => {
-      const title = prompt('Collection title:');
-      if (!title) return;
+ // Criar nova coleção ao clicar no botão "Create New Collection"
+if (createBtn) {
+  createBtn.addEventListener('click', () => {
+    const title = prompt('Collection title:'); // Solicita o título da coleção
+    if (!title) return; // Se o título não for fornecido, cancela a criação.
 
-      const desc = prompt('Short description:') || 'No description.';
-      const img  = prompt('Image URL (leave blank for a random image):');
-      const fallback = `https://picsum.photos/600/400?rand=${Math.floor(Math.random()*10000)}`;
+    const desc = prompt('Short description:') || 'No description.'; // Solicita a descrição da coleção
+    const img  = prompt('Image URL (leave blank for a random image):'); // Solicita a URL da imagem
+    const fallback = `https://picsum.photos/600/400?rand=${Math.floor(Math.random()*10000)}`; // Imagem aleatória como fallback
 
-      state.collections.unshift({
-        id: Date.now(),
-        title: title.trim(),
-        desc: desc.trim(),
-        img: (img && img.trim()) ? img.trim() : fallback
-      });
+    const dateCreated = new Date().toLocaleDateString(); // Data de criação
 
-      save();
-      state.page = 1; // volver a primera página para ver la nueva
-      render();
-    });
-  }
+    // Nova coleção com ID único gerado por Date.now()
+    const newCollection = {
+      id: Date.now(), // Usamos o timestamp para garantir que cada coleção tenha um ID único
+      title: title.trim(),
+      desc: desc.trim(),
+      img: (img && img.trim()) ? img.trim() : fallback, // Se não houver imagem, usa a imagem aleatória
+      dateCreated: dateCreated, // Adiciona a data de criação
+    };
 
-  // Ver más (paginación)
+    // Adiciona a nova coleção no array
+    state.collections.unshift(newCollection);
+    save(); // Salva no localStorage
+    state.page = 1; // Volta para a primeira página para ver a nova coleção
+    render(); // Atualiza a lista de coleções
+
+    // Gerar o link para a página de detalhes da nova coleção
+    const collectionPageUrl = `collection-page-${newCollection.id}.html`; // Página única para cada coleção
+    alert(`Collection created! View your collection at: ${collectionPageUrl}`);
+
+    // Criar a página HTML da nova coleção
+    const newPageContent = `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="utf-8"/>
+        <meta content="width=device-width, initial-scale=1" name="viewport"/>
+        <title>Collection · ${newCollection.title}</title>
+        <link rel="stylesheet" href="css.collection.page/collection-page.css">
+      </head>
+      <body>
+        <a class="skip-link" href="#main-content">Skip to content</a>
+        <div class="layout">
+          <!-- Topbar -->
+          <header aria-label="Site top bar" class="topbar" role="banner">
+            <div aria-label="Site name" class="topbar__brand">Collecta<span class="topbar__dot">•</span>Hub</div>
+            <div class="topbar__actions">
+              <button type="button" class="btn btn--ghost" aria-label="Open profile" onclick="window.location.href='profile_page1.html';">
+                <svg aria-hidden="true" class="icon" role="img" viewBox="0 0 24 24"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-5.33 0-8 2.67-8 6v1h16v-1c0-3.33-2.67-6-8-6Z"></path></svg>
+                <span>Profile</span>
+              </button>
+            </div>
+          </header>
+
+          <!-- Sidebar navigation -->
+          <aside aria-label="Primary" class="sidebar">
+            <nav aria-label="Main navigation" class="sidebar__nav">
+              <ul class="sidebar__list">
+                <li><a class="sidebar__link" data-nav="collector" href="#">Collector</a></li>
+                <li><a class="sidebar__link" data-nav="collections" href="#">Collections</a></li>
+                <li><a class="sidebar__link" data-nav="events"      href="#">Events</a></li>
+                <li><a class="sidebar__link" data-nav="community"   href="#">Community</a></li>
+              </ul>
+            </nav>
+          </aside>
+          
+          <!-- Main content -->
+          <main aria-label="Collection main content" class="main" id="main-content">
+            <!-- Hero -->
+            <section aria-label="Collection hero" class="hero">
+              <figure class="hero__media">
+                <img alt="${newCollection.title} cover image" src="${newCollection.img}" />
+                <figcaption class="sr-only">Cover image of the collection.</figcaption>
+              </figure>
+              <div class="hero__text">
+                <h1 class="hero__title">${newCollection.title}</h1>
+                <p class="hero__subtitle">${newCollection.desc}</p>
+                <p class="hero__date">Created on: ${newCollection.dateCreated}</p> <!-- Exibe a data de criação -->
+              </div>
+            </section>
+
+            <!-- Collection items -->
+            <section aria-label="Collection items grid" class="grid" data-grid>
+              <!-- Add collection items here -->
+            </section>
+          </main>
+          
+          <footer aria-label="Site footer" class="footer">
+            <small>© 2025 CollectaHub · <a href="#" rel="nofollow">Privacy</a></small>
+          </footer>
+        </div>
+      </body>
+      </html>
+    `;
+
+    // Salva o conteúdo da página como um novo arquivo HTML
+    const blob = new Blob([newPageContent], { type: "text/html" });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = collectionPageUrl;
+    link.click(); // Simula o download da página criada
+
+  });
+}
+
+  // Ver mais (paginación)
   if (seeMoreEl) {
     seeMoreEl.addEventListener('click', (e) => {
       e.preventDefault();
@@ -125,7 +209,7 @@
     });
   }
 
-  // Eliminar (delegación sobre la sección para captar clicks en .delete-btn)
+  // Eliminar (delegação sobre la sección para captar clicks en .delete-btn)
   if (listSection) {
     listSection.addEventListener('click', (e) => {
       const btn = e.target.closest('.delete-btn');

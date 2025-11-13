@@ -23,10 +23,11 @@
   // ---- utils ---------------------------------------------------------------
   const getMeta = (n, f='') => (DOC.querySelector(`meta[name="${n}"]`)?.getAttribute('content') ?? f) + '';
   const trimSlash = (s='') => s.replace(/^\/+/, '').replace(/\/+$/, '');
-  const withBase = (p) => {
-    const base = trimSlash(getMeta('app-base', ''));
-    return (base ? `/${base}` : '') + '/' + trimSlash(p);
-  };
+const withBase = (p) => {
+  const base = trimSlash(getMeta('app-base', ''));
+  return base ? `/${base}/${trimSlash(p)}` : trimSlash(p);
+};
+
   const getCollectionId = () => {
     // Priority 1: ?c=...
     const c = new URLSearchParams(location.search).get('c');
@@ -43,9 +44,9 @@
     item: trimSlash(getMeta('item-page-path', 'index.html')),
     events: trimSlash(getMeta('events-page-path', 'event.html')),
     collections: trimSlash(getMeta('collection-page-path', 'collection-page.html')),
-    collector: trimSlash(getMeta('collection-page-path', 'collection-page.html')), // same page by default
-    community: 'community.html', // you can change this to your real page later
-  };
+    collector: trimSlash(getMeta('collectors-page-path', 'Homepage.login.html')), // same page by default
+    community:   trimSlash(getMeta('community-page-path',  'team_page2.html')),
+};
 
   // Build URLs preserving ?c
   const urlFor = {
