@@ -35,14 +35,14 @@
 
             <!-- Sidebar navigation -->
             <aside aria-label="Primary" class="sidebar">
-                <button aria-label="Create a new collection" class="btn btn--primary sidebar__cta" type="button">
+                <button aria-label="Create a new collection" class="btn btn--primary sidebar__cta" type="button" data-nav="create">
                     <!-- plus icon -->
                     <svg aria-hidden="true" class="icon" role="img" viewbox="0 0 24 24"><path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z"></path></svg>
                     <span>Create New Collection</span>
                 </button>
                 <nav aria-label="Main navigation" class="sidebar__nav">
                     <ul class="sidebar__list">
-                        <li><a aria-label="Go to Collector" class="sidebar__link" href="homepage.login.html">Collector..</a></li>
+                        <li><a aria-label="Go to Collector" class="sidebar__link" href="Homepage.login.html">Collector..</a></li>
                         <li><a aria-label="Go to Collections" class="sidebar__link" href="collection-page.html">Collections</a></li>
                         <li><a aria-label="Go to Events" class="sidebar__link" href="event.html">Events</a></li>
                         <li><a aria-label="Go to Community" class="sidebar__link" href="team_page2.html">Community</a></li>
@@ -56,7 +56,7 @@
                 <div class="profile-content">
                     <!-- Profile Picture and Change Photo Button -->
                     <div class="profile-left">
-                        <img src="imagens.profile_team/pessoa.png" alt="Foto do utilizador" class="profile-pic">
+                        <img src="imagens.profile_team/pessoa.png" alt="Foto do utilizador" class="profile-pic" id="profileImage">
                         <button class="btn btn--primary btn--block" id="changePhotoBtn" type="button">
                             Change Profile Picture
                         </button>
@@ -65,34 +65,42 @@
 
                     <!-- Profile Information -->
                     <div class="profile-right">
-                        <div class="info-grid">
-                            <div class="info-box">
-                                <p class="label">Name</p>
-                                <p class="value">Telmo Matos</p>
-                            </div>
+    <div class="profile-header">
+        <h2 class="profile-title">Profile details</h2>
+        <button class="btn btn--secondary" id="editProfileBtn" type="button">
+            Edit Profile
+        </button>
+    </div>
 
-                            <div class="info-box">
-                                <p class="label">Date of birth</p>
-                                <p class="value">01/06/1978</p>
-                            </div>
+    <div class="info-grid">
+        <div class="info-box">
+            <p class="label">Name</p>
+            <p class="value" id="profileName">Telmo Matos</p>
+        </div>
 
-                            <div class="info-box">
-                                <p class="label">Here since</p>
-                                <p class="value">29/09/2025</p>
-                            </div>
+        <div class="info-box">
+            <p class="label">Date of birth</p>
+            <p class="value" id="profileDob">01/06/1978</p>
+        </div>
 
-                            <div class="info-box">
-                                <p class="label">E-mail</p>
-                                <p class="value">TPM@fe.up.pt</p>
-                            </div>
-                        </div>
-                    </div>
+        <div class="info-box">
+            <p class="label">Here since</p>
+            <p class="value" id="profileSince">29/09/2025</p>
+        </div>
+
+        <div class="info-box">
+            <p class="label">E-mail</p>
+            <p class="value" id="profileEmail">TPM@fe.up.pt</p>
+        </div>
+    </div>
+</div>
+
                 </div>
             </main>
 
             <!-- FOOTER -->
             <footer class="footer">
-                <small>&copy; 2025 TeamWork Portal – All rights reserved.</small>
+                <small>&copy; © 2025 Collecta•Hub — Team EIS_2526-G02-MEGI</small>
             </footer>
 
         </div>

@@ -1,9 +1,10 @@
 /**
- * collection-page.js (clean + fixed)
+ * collection-page.js (clean + fixed + collections-data)
  * - Works with the provided HTML
  * - Lists/searches/filters items, creates/deletes
  * - Navigates to item page on click
  * - Wires "Events" navigation
+ * - Integra com collections-data (coleções criadas via modal)
  */
 (() => {
   "use strict";
@@ -22,37 +23,161 @@
   /** Build canonical URLs */
   const buildItemUrl = (itemId) => {
     const base = APP_BASE ? `${APP_BASE}/` : '';
-    const c = collectionId || 'demo-collection'; // collectionId is declared later; used only after init
+    const c = collectionId || 'demo-collection'; // collectionId é declarado mais em baixo; usado só depois do init
     return `${base}${ITEM_PAGE_PATH}?id=${encodeURIComponent(itemId)}&c=${encodeURIComponent(c)}`;
   };
+
   function buildEventsUrl() {
     const base = APP_BASE ? `${APP_BASE}/` : '';
     const cid = (typeof collectionId !== 'undefined' && collectionId) ? collectionId : 'default-collection';
     return `${base}${EVENTS_PAGE_PATH}?c=${encodeURIComponent(cid)}`;
   }
 
+  // ========================================================================
+  // Create New Collection (compartilhado com outras páginas)
+  // ========================================================================
+  const COLLECTIONS_LS_KEY = 'collections-data';
 
-document.addEventListener('DOMContentLoaded', () => {
-  const urlParams = new URLSearchParams(window.location.search);
-  const collectionId = urlParams.get('id'); // Pega o ID da coleção da URL
+  function openCreateCollectionModal() {
+    const existing = JSON.parse(localStorage.getItem(COLLECTIONS_LS_KEY) || '[]');
 
-  // Recuperar as coleções do localStorage
-  const collections = JSON.parse(localStorage.getItem('collections-data')) || [];
+    const overlay = document.createElement('div');
+    Object.assign(overlay.style, {
+      position: 'fixed',
+      inset: 0,
+      background: 'rgba(0,0,0,.45)',
+      display: 'grid',
+      placeItems: 'center',
+      zIndex: 9999,
+      padding: '16px'
+    });
 
-  // Encontrar a coleção correspondente pelo ID
-  const collection = collections.find(c => c.id == collectionId);
+    const box = document.createElement('div');
+    Object.assign(box.style, {
+      width: 'min(520px, 100%)',
+      background: 'var(--surface, #fff)',
+      color: 'var(--text, #111)',
+      borderRadius: '16px',
+      boxShadow: '0 20px 60px rgba(0,0,0,.25)',
+      overflow: 'hidden',
+      fontFamily: 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif'
+    });
 
-  // Exibir detalhes da coleção
-  if (collection) {
-    document.querySelector('.hero__title').textContent = collection.title;
-    document.querySelector('.hero__subtitle').textContent = collection.desc;
-    document.querySelector('.hero__media img').src = collection.img;
-    document.querySelector('.hero__media img').alt = collection.title;
-    document.querySelector('.hero__date').textContent = `Created on: ${collection.dateCreated}`;
-  } else {
-    document.querySelector('.hero__text').innerHTML = '<p>Collection not found.</p>';
+    box.innerHTML = `
+      <div style="padding:20px 20px 10px">
+        <h2 style="font-size:18px;margin:0 0 6px">Create New Collection</h2>
+        <p style="margin:0 0 12px;opacity:.8">Fill the fields below to create a new collection.</p>
+      </div>
+      <form style="padding:0 20px 16px;display:flex;flex-direction:column;gap:10px">
+        <div>
+          <label style="display:block;font-weight:600;margin-bottom:4px">Name *</label>
+          <input name="name" type="text" required
+            style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border,#ddd)">
+        </div>
+
+        <div>
+          <label style="display:block;font-weight:600;margin-bottom:4px">Type</label>
+          <input name="type" type="text" placeholder="Miniatures, Cards..."
+            style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border,#ddd)">
+        </div>
+
+        <div>
+          <label style="display:block;font-weight:600;margin-bottom:4px">Creation date</label>
+          <input name="dateCreated" type="date"
+            style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border,#ddd)">
+        </div>
+
+        <div>
+          <label style="display:block;font-weight:600;margin-bottom:4px">Description</label>
+          <textarea name="desc" rows="3"
+            style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border,#ddd);resize:vertical"></textarea>
+        </div>
+
+        <div>
+          <label style="display:block;font-weight:600;margin-bottom:4px">Banner image URL</label>
+          <input name="img" type="url" placeholder="https://..."
+            style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border,#ddd)">
+          <small style="display:block;margin-top:4px;opacity:.7">If empty, a random image will be used.</small>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px">
+          <button type="button" data-role="cancel"
+            style="border-radius:10px;padding:8px 12px;border:1px solid var(--border,#ddd);background:#f9fafb;cursor:pointer">
+            Cancel
+          </button>
+          <button type="submit"
+            style="border-radius:10px;padding:8px 14px;border:1px solid #000;background:#000;color:#fff;font-weight:600;cursor:pointer">
+            Create
+          </button>
+        </div>
+      </form>
+    `;
+
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+
+    const formCol = box.querySelector('form');
+    const cancelBtnModal = box.querySelector('[data-role="cancel"]');
+
+    function close() {
+      overlay.remove();
+    }
+
+    cancelBtnModal.addEventListener('click', (e) => {
+      e.preventDefault();
+      close();
+    });
+
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) close();
+    });
+
+    formCol.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const data = new FormData(formCol);
+
+      const name = (data.get('name') || '').toString().trim();
+      if (!name) {
+        alert('Name is required.');
+        return;
+      }
+
+      const type = (data.get('type') || '').toString().trim() || 'Miniatures';
+      const dateCreated = (data.get('dateCreated') || '').toString() || new Date().toISOString().slice(0, 10);
+      const desc = (data.get('desc') || '').toString().trim();
+      const imgInput = (data.get('img') || '').toString().trim();
+      const fallbackImg = `https://picsum.photos/seed/collection-${Date.now()}/1200/600`;
+      const img = imgInput || fallbackImg;
+
+      const newId = Date.now().toString();
+
+      const newCollection = {
+        id: newId,
+        title: name,
+        desc,
+        img,
+        type,
+        dateCreated
+      };
+
+      existing.unshift(newCollection);
+      localStorage.setItem(COLLECTIONS_LS_KEY, JSON.stringify(existing));
+
+      close();
+
+      // Redireciona para a Collection Page desta nova coleção
+      window.location.href = `collection-page.html?id=${encodeURIComponent(newId)}`;
+    });
   }
-});
+
+  function attachCreateCollectionHandler() {
+    const btn = document.querySelector('#create-collection, [data-nav="create"]');
+    if (!btn) return;
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      openCreateCollectionModal();
+    });
+  }
 
   /** ----------------------------- Utilities ----------------------------- */
   // Robust UUID: prefers crypto.randomUUID; otherwise generates a pseudo-UUID (RFC-ish)
@@ -193,7 +318,16 @@ document.addEventListener('DOMContentLoaded', () => {
   /** ----------------------------- State & DOM ----------------------------- */
   const main = qs("#main-content");
   if (!main) { console.warn("[collection-page.js] #main-content not found"); return; }
-  const collectionId = main.dataset.collectionId || "demo-collection";
+
+  // pega ?id= da URL (coleção criada) OU data-collection-id (template antigo)
+  const urlParams = new URLSearchParams(window.location.search);
+  const collectionIdFromUrl = urlParams.get('id');
+  const collectionId = collectionIdFromUrl || main.dataset.collectionId || "demo-collection";
+
+  // garante que o resto do código (e os hotfixes) vejam esse id
+  if (collectionIdFromUrl) {
+    main.dataset.collectionId = collectionIdFromUrl;
+  }
 
   const state = {
     page: 1, pageSize: 9, hasMore: true,
@@ -264,8 +398,13 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="card__media" data-href="${escapeHTML(href)}">
           <img alt="${escapeHTML(it.name || "Item image")}" src="${escapeHTML(cardImageSrc(it))}"/>
           ${badge}
-          <button class="card__action card__action--delete" title="Delete item ${escapeHTML(it.name || "")}" aria-label="Delete item ${escapeHTML(it.name || "")}">×</button>
-        </div>
+        <button 
+  type="button"
+  class="card__action card__action--delete"
+  title="Delete item ${escapeHTML(it.name || "")}"
+  aria-label="Delete item ${escapeHTML(it.name || "")}"
+>×</button>        
+</div>
         <div class="card__body">
           <h3 class="card__title">
             <a aria-label="Open ${escapeHTML(it.name || "Item")} details" href="${escapeHTML(href)}">
@@ -544,10 +683,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (grid) {
-      // delete
-      on(grid, "click", ".card__action--delete", async (e, btn) => {
-        e.preventDefault();
-        const card = btn.closest(".card"); if (!card) return;
+  // delete
+  on(grid, "click", ".card__action--delete", async (e, btn) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+
+    const card = btn.closest(".card");
+    if (!card) return;
         const id = card.dataset.itemId;
         const name = qs(".card__title", card)?.textContent?.trim() || "item";
         const ok = await confirmDialog({
@@ -763,9 +906,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
   /** ----------------------------- Data loading ----------------------------- */
   async function loadCollection() {
+    // 1) Tenta carregar da API local (collecta:collections)
     let collection = await api.getCollection(collectionId);
+
+    // 2) Lê também o que foi salvo em `collections-data` (Create New Collection)
+    let fromCustom = null;
+    try {
+      const raw = localStorage.getItem(COLLECTIONS_LS_KEY);
+      if (raw) {
+        const arr = JSON.parse(raw);
+        fromCustom = arr.find(c => String(c.id) === String(collectionId)) || null;
+      }
+    } catch {
+      fromCustom = null;
+    }
+
+    // 3) Se não existe nada em collecta:collections, cria usando DOM + fromCustom
     if (!collection) {
-      collection = await api.updateCollection(collectionId, {
+      const base = {
         id: collectionId,
         title: qs(".hero__title", main)?.textContent?.trim() || "My Collection",
         subtitle: qs(".hero__subtitle", main)?.textContent?.trim() || "",
@@ -774,8 +932,35 @@ document.addEventListener('DOMContentLoaded', () => {
         createdAt: new Date("2023-01-12").toISOString(),
         lastRecordAt: isoNow(),
         coverImageUrl: qs(".hero__media img", main)?.src || "",
+      };
+
+      if (fromCustom) {
+        base.title = fromCustom.title || base.title;
+        base.subtitle = fromCustom.desc || base.subtitle;
+        base.coverImageUrl = fromCustom.img || base.coverImageUrl;
+        base.type = fromCustom.type || base.type;
+        if (fromCustom.dateCreated) {
+          base.createdAt = new Date(fromCustom.dateCreated).toISOString();
+        }
+      }
+
+      collection = await api.updateCollection(collectionId, base);
+    }
+    // 4) Se já existe em collecta:collections, mas também tem info em collections-data,
+    //    sincroniza título/descrição/capa/tipo/data de criação
+    else if (fromCustom) {
+      collection = await api.updateCollection(collectionId, {
+        ...collection,
+        title: fromCustom.title || collection.title,
+        subtitle: fromCustom.desc || collection.subtitle,
+        coverImageUrl: fromCustom.img || collection.coverImageUrl,
+        type: fromCustom.type || collection.type,
+        createdAt: collection.createdAt || (fromCustom.dateCreated
+          ? new Date(fromCustom.dateCreated).toISOString()
+          : isoNow())
       });
     }
+
     state.collection = collection;
     renderCollectionHeader(collection);
     renderStats(collection, collection.itemCount || 0);
@@ -826,6 +1011,7 @@ document.addEventListener('DOMContentLoaded', () => {
       await loadItems({ append: false, page: 1 });
       attachEvents();
       wireEventsButton();
+      attachCreateCollectionHandler();
       showToast("Collection ready.", "success", 1800);
     } catch (err) {
       console.error(err);
@@ -913,6 +1099,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function installDelegatedHandlers() {
     document.addEventListener('click', (e) => {
+          // 🔒 Se o clique foi no botão de delete, não navega pra lugar nenhum
+  if (e.target.closest?.('.card__action--delete')) return;
+        
       const media = e.target.closest?.('.card__media');
       if (media && media.hasAttribute('data-href')) {
         const href = media.getAttribute('data-href');
@@ -941,6 +1130,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try { installDelegatedHandlers(); } catch (err) { console.error('[collecta] delegated handlers failed', err); }
   });
 })();
+
 /* === Universal Nav (Collection Page) ========================================
    Purpose:
    - Wire "Events" and "Collections" buttons
@@ -985,6 +1175,7 @@ document.addEventListener('DOMContentLoaded', () => {
     wireByTextOrData('collections', buildCollectionsUrl());
   });
 })();
+
 /* === Universal Profile Wiring (drop-in) =====================================
    Purpose:
    - Make the "Profile" button work on every page (Collection, Item/Index, Events)

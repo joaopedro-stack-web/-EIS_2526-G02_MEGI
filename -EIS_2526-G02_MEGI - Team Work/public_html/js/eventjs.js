@@ -1,7 +1,3 @@
-/* 
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/ClientSide/javascript.js to edit this template
- */
 'use strict';
 
 /*Test events*/
@@ -79,6 +75,157 @@ let filter = 'coming';
 let editingId = null;
 
 
+// ============================================================================
+// >>> NOVO: lógica compartilhada de "Create New Collection" (modal + redirect)
+// ============================================================================
+
+const COLLECTIONS_LS_KEY = 'collections-data';
+
+function openCreateCollectionModal() {
+  // lê coleções existentes do localStorage (ou array vazio)
+  const existing = JSON.parse(localStorage.getItem(COLLECTIONS_LS_KEY) || '[]');
+
+  const overlay = document.createElement('div');
+  Object.assign(overlay.style, {
+    position: 'fixed',
+    inset: 0,
+    background: 'rgba(0,0,0,.45)',
+    display: 'grid',
+    placeItems: 'center',
+    zIndex: 9999,
+    padding: '16px'
+  });
+
+  const box = document.createElement('div');
+  Object.assign(box.style, {
+    width: 'min(520px, 100%)',
+    background: 'var(--surface, #fff)',
+    color: 'var(--text, #111)',
+    borderRadius: '16px',
+    boxShadow: '0 20px 60px rgba(0,0,0,.25)',
+    overflow: 'hidden',
+    fontFamily: 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif'
+  });
+
+  box.innerHTML = `
+    <div style="padding:20px 20px 10px">
+      <h2 style="font-size:18px;margin:0 0 6px">Create New Collection</h2>
+      <p style="margin:0 0 12px;opacity:.8">Fill the fields below to create a new collection.</p>
+    </div>
+    <form style="padding:0 20px 16px;display:flex;flex-direction:column;gap:10px">
+      <div>
+        <label style="display:block;font-weight:600;margin-bottom:4px">Name *</label>
+        <input name="name" type="text" required
+          style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border,#ddd)">
+      </div>
+
+      <div>
+        <label style="display:block;font-weight:600;margin-bottom:4px">Type</label>
+        <input name="type" type="text" placeholder="Miniatures, Cards..."
+          style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border,#ddd)">
+      </div>
+
+      <div>
+        <label style="display:block;font-weight:600;margin-bottom:4px">Creation date</label>
+        <input name="dateCreated" type="date"
+          style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border,#ddd)">
+      </div>
+
+      <div>
+        <label style="display:block;font-weight:600;margin-bottom:4px">Description</label>
+        <textarea name="desc" rows="3"
+          style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border,#ddd);resize:vertical"></textarea>
+      </div>
+
+      <div>
+        <label style="display:block;font-weight:600;margin-bottom:4px">Banner image URL</label>
+        <input name="img" type="url" placeholder="https://..."
+          style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border,#ddd)">
+        <small style="display:block;margin-top:4px;opacity:.7">If empty, a random image will be used.</small>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px">
+        <button type="button" data-role="cancel"
+          style="border-radius:10px;padding:8px 12px;border:1px solid var(--border,#ddd);background:#f9fafb;cursor:pointer">
+          Cancel
+        </button>
+        <button type="submit"
+          style="border-radius:10px;padding:8px 14px;border:1px solid #000;background:#000;color:#fff;font-weight:600;cursor:pointer">
+          Create
+        </button>
+      </div>
+    </form>
+  `;
+
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+
+  const formCol = box.querySelector('form');
+  const cancelBtnModal = box.querySelector('[data-role="cancel"]');
+
+  function close() {
+    overlay.remove();
+  }
+
+  cancelBtnModal.addEventListener('click', (e) => {
+    e.preventDefault();
+    close();
+  });
+
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) close();
+  });
+
+  formCol.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const data = new FormData(formCol);
+
+    const name = (data.get('name') || '').toString().trim();
+    if (!name) {
+      alert('Name is required.');
+      return;
+    }
+
+    const type = (data.get('type') || '').toString().trim() || 'Miniatures';
+    const dateCreated = (data.get('dateCreated') || '').toString() || new Date().toISOString().slice(0, 10);
+    const desc = (data.get('desc') || '').toString().trim();
+    const imgInput = (data.get('img') || '').toString().trim();
+    const fallbackImg = `https://picsum.photos/seed/collection-${Date.now()}/1200/600`;
+    const img = imgInput || fallbackImg;
+
+    const newId = Date.now().toString();
+
+    const newCollection = {
+      id: newId,
+      title: name,
+      desc,
+      img,
+      type,
+      dateCreated
+    };
+
+    existing.unshift(newCollection);
+    localStorage.setItem(COLLECTIONS_LS_KEY, JSON.stringify(existing));
+
+    close();
+
+    // Redireciona para a Collection Page com esse ID
+    window.location.href = `collection-page.html?id=${encodeURIComponent(newId)}`;
+  });
+}
+
+function attachCreateCollectionHandler() {
+  const btn = document.querySelector('#create-collection, [data-nav="create"]');
+  if (!btn) return;
+  btn.addEventListener('click', (e) => {
+    e.preventDefault();
+    openCreateCollectionModal();
+  });
+}
+
+// ============================================================================
+// FIM DO BLOCO NOVO
+// ============================================================================
 
 
 function render() {
@@ -223,7 +370,6 @@ function makeCard(ev) {
 
 /* =======================
    5) RATING (stjärnor)
-   - klickbart ENDAST om datumet passerat
    ======================= */
 function ratingComponent(ev) {
   const wrap = document.createElement('div');
@@ -322,6 +468,11 @@ newEvent.addEventListener('click', () => openForm(null));
    10) STARTA
    ======================= */
 render();
+
+// >>> NOVO: conecta o botão "Create New Collection" desta página
+attachCreateCollectionHandler();
+
+
 /* === Universal Nav (Events Page) ============================================
    Purpose:
    - Wire "Events" (self with ?c=...) and "Collections"
@@ -378,17 +529,13 @@ render();
     ensureBackToCollection();
   });
 })();
+
 /* === Universal Profile Wiring (drop-in) =====================================
-   Purpose:
-   - Make the "Profile" button work on every page (Collection, Item/Index, Events)
-   - No global leaks, resilient selectors, and no dependency on other code
+   ... (resto inalterado)
 ============================================================================== */
 (() => {
-  // Prevent double-binding if this block is included more than once on a page
   if (document.documentElement.dataset.profileWired === '1') return;
   document.documentElement.dataset.profileWired = '1';
-
-  /** Build a lightweight floating menu for the profile button */
   function buildProfileMenu() {
     const wrap = document.createElement('div');
     wrap.className = 'profile-menu';
@@ -410,7 +557,6 @@ render();
           style="width:100%;text-align:left;border:0;background:none;padding:10px;border-radius:8px;cursor:pointer">Logout</button></li>
       </ul>
     `;
-    // Small hover effect
     wrap.addEventListener('mouseover', (e) => {
       const it = e.target.closest('.menu__item'); if (!it) return;
       it.style.background = 'rgba(0,0,0,.06)';
@@ -444,58 +590,45 @@ render();
     const menu = buildProfileMenu();
     document.body.appendChild(menu);
 
-    // Position below the button
     const r = btn.getBoundingClientRect();
     const gap = 8;
     menu.style.left = Math.round(r.left + window.scrollX) + 'px';
     menu.style.top  = Math.round(r.bottom + window.scrollY + gap) + 'px';
 
-    // Actions
     menu.addEventListener('click', (e) => {
       const cmd = e.target.closest('[data-cmd]')?.dataset.cmd;
       if (!cmd) return;
       e.preventDefault();
       if (cmd === 'see-profile') {
-        // Hook your real profile route here if you have one:
-        // window.location.href = '/profile.html';
         console.log('[profile] open profile');
       } else if (cmd === 'logout') {
         try {
-          // Demo: clear app keys if you use localStorage for demo auth
           Object.keys(localStorage).forEach(k => { if (k.startsWith('collecta:')) localStorage.removeItem(k); });
         } catch {}
         console.log('[profile] logout');
-        // Reload to reflect state
         setTimeout(() => window.location.reload(), 200);
       }
       closeProfileMenu();
     });
 
-    // Close on outside interactions
     document.addEventListener('click', onDocClick, true);
     window.addEventListener('resize', closeProfileMenu);
     window.addEventListener('scroll', closeProfileMenu, true);
 
-    // Initial focus for a11y
     const first = menu.querySelector('.menu__item');
     if (first) first.focus();
 
     openMenuEl = menu;
   }
 
-  /** Find the "Profile" trigger robustly */
   function findProfileButton() {
-    // Priority: aria-label exact
     let btn = document.querySelector('button[aria-label="Open profile"], [data-nav="profile"]');
-
     if (!btn) {
-      // Fallback: any button/anchor in topbar-like areas whose visible text is "Profile"
       const candidates = Array.from(document.querySelectorAll(
         '.topbar .btn, .topbar__actions .btn, header .btn, a, button'
       ));
       btn = candidates.find(el => /profile/i.test((el.textContent || '').trim()));
     }
-
     return btn || null;
   }
 
@@ -506,7 +639,6 @@ render();
       console.warn('[profile] trigger not found on this page');
       return;
     }
-    // Make it look/behave like an interactive control for a11y
     if (!trigger.getAttribute('aria-haspopup')) trigger.setAttribute('aria-haspopup', 'menu');
     trigger.setAttribute('aria-expanded', 'false');
 

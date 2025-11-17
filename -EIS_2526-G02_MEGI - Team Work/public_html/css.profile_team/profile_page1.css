@@ -744,3 +744,17 @@ body {
 .user-card p {
   margin: 6px 0;
 }
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.profile-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
