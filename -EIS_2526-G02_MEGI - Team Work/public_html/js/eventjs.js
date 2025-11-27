@@ -1,38 +1,7 @@
 'use strict';
 
-/*Test events*/
-const events = [
-  {
-    id: "e1",
-    collection: "Collection 1",
-    name: "Event 1",
-    location: "Porto",
-    date: "2026-02-01",          
-    description: "Event in Porto, in the beginning of February",
-    rating: null,
-    image: "https://media.istockphoto.com/id/472119842/pt/foto/porto-portugal-old-city.jpg?s=612x612&w=0&k=20&c=s6VnvadPmZwejuyl9-4YO56n9v9VdBXxbEyOjZEL03o="
-  },
-  {
-    id: "e2",
-    collection: "Collection 2",
-    name: "Event 2",
-    location: "Lisbon",
-    date: "2025-11-01",         
-    description: "Halloween event in Lisbon",
-    rating: 4,
-    image: "https://images.ctfassets.net/wvgaszxkj2ha/2nWOSeZncy52J8raC3inew/054dae539e25aaf5a576dec877ef7bd7/Trams-in-Lisbon-900x600.jpg?w=3840&q=85&fm=webp"
-  },
-  {
-    id: "e3",
-    collection: "Collection 2",
-    name: "Event 3",
-    location: "Faro",
-    date: "2025-12-01",
-    description: "Christmas event in Faro",
-    rating: null,
-    image: "https://www.movingtoportugal.pt/wp-content/uploads/2021/06/Faro-3.png"
-  }
-];
+// Agora os eventos vêm do backend, então começamos com vazio
+let events = [];
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
@@ -49,31 +18,30 @@ function isSoon(dateISO) {
   return n >= 0 && n <= 7;
 }
 
-const listEvent = document.getElementById('event-list');   
-const newEvent = document.getElementById('new-event');    
-const filterComing = document.getElementById('coming');       
-const filterPast = document.getElementById('past');         
-const filterAll = document.getElementById('all');          
+const listEvent     = document.getElementById('event-list');
+const newEvent      = document.getElementById('new-event');
+const filterComing  = document.getElementById('coming');
+const filterPast    = document.getElementById('past');
+const filterAll     = document.getElementById('all');
 
-const dialog = document.getElementById('event-dialog');      
-const form = document.getElementById('event-form');        
-const formTitle = document.getElementById('form-title');        
+const dialog        = document.getElementById('event-dialog');
+const form          = document.getElementById('event-form');
+const formTitle     = document.getElementById('form-title');
 
-const fCollection = document.getElementById('form-collection');
-const fName = document.getElementById('form-name');
-const fLocation = document.getElementById('form-location');
-const fDate = document.getElementById('form-date');
-const fDesc = document.getElementById('form-desc');
+const fCollection   = document.getElementById('form-collection');
+const fName         = document.getElementById('form-name');
+const fLocation     = document.getElementById('form-location');
+const fDate         = document.getElementById('form-date');
+const fDesc         = document.getElementById('form-desc');
 
-const fImage    = document.getElementById('form-image');
-const imageRow  = document.getElementById('image-row');
+const fImage        = document.getElementById('form-image');
+const imageRow      = document.getElementById('image-row');
 
-const cancelBtn = document.getElementById('cancel');
-
+const cancelBtn     = document.getElementById('cancel');
+const formError     = document.getElementById('form-error');
 
 let filter = 'coming';
 let editingId = null;
-
 
 // ============================================================================
 // >>> NOVO: lógica compartilhada de "Create New Collection" (modal + redirect)
@@ -82,7 +50,6 @@ let editingId = null;
 const COLLECTIONS_LS_KEY = 'collections-data';
 
 function openCreateCollectionModal() {
-  // lê coleções existentes do localStorage (ou array vazio)
   const existing = JSON.parse(localStorage.getItem(COLLECTIONS_LS_KEY) || '[]');
 
   const overlay = document.createElement('div');
@@ -186,12 +153,12 @@ function openCreateCollectionModal() {
       return;
     }
 
-    const type = (data.get('type') || '').toString().trim() || 'Miniatures';
+    const type        = (data.get('type') || '').toString().trim() || 'Miniatures';
     const dateCreated = (data.get('dateCreated') || '').toString() || new Date().toISOString().slice(0, 10);
-    const desc = (data.get('desc') || '').toString().trim();
-    const imgInput = (data.get('img') || '').toString().trim();
+    const desc        = (data.get('desc') || '').toString().trim();
+    const imgInput    = (data.get('img') || '').toString().trim();
     const fallbackImg = `https://picsum.photos/seed/collection-${Date.now()}/1200/600`;
-    const img = imgInput || fallbackImg;
+    const img         = imgInput || fallbackImg;
 
     const newId = Date.now().toString();
 
@@ -209,7 +176,6 @@ function openCreateCollectionModal() {
 
     close();
 
-    // Redireciona para a Collection Page com esse ID
     window.location.href = `collection-page.html?id=${encodeURIComponent(newId)}`;
   });
 }
@@ -224,20 +190,27 @@ function attachCreateCollectionHandler() {
 }
 
 // ============================================================================
-// FIM DO BLOCO NOVO
+// RENDERIZAÇÃO DE EVENTOS
 // ============================================================================
-
 
 function render() {
   listEvent.innerHTML = '';
 
-  const ordered = [...events].sort((a, b) => a.date.localeCompare(b.date));
+  const ordered = [...events].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
 
   const filtered = ordered.filter(ev => {
-    if (filter === 'all') return true;
-    if (filter === 'coming') return !isPast(ev.date);
-    if (filter === 'past') return isPast(ev.date);
+    if (filter === 'all')   return true;
+    if (filter === 'coming') return !isPast(ev.date || '');
+    if (filter === 'past')   return isPast(ev.date || '');
   });
+
+  if (!filtered.length) {
+    const p = document.createElement('p');
+    p.textContent = 'No events found for this filter.';
+    listEvent.appendChild(p);
+    return;
+  }
+
   filtered.forEach(ev => listEvent.appendChild(makeCard(ev)));
 }
 
@@ -250,8 +223,7 @@ function openDetailDialog(ev) {
   const chipL = document.getElementById('detail-location');
   const chipR = document.getElementById('detail-rating');
   const desc  = document.getElementById('detail-desc');
-  
-  // Bild
+
   if (ev.image) {
     imgEl.src = ev.image;
     imgEl.alt = `Image of ${ev.name || 'event'}`;
@@ -262,28 +234,25 @@ function openDetailDialog(ev) {
     imgEl.style.display = 'none';
   }
 
-  // Text
-  h2.textContent = ev.name || 'Untitled event';
+  h2.textContent   = ev.name || 'Untitled event';
   chipC.textContent = ev.collection ? `Collection: ${ev.collection}` : 'Collection: –';
   chipD.textContent = ev.date ? `Date: ${ev.date}` : 'Date: –';
   chipL.textContent = ev.location ? `City: ${ev.location}` : 'City: –';
   chipR.textContent = `Rating: ${ev.rating ?? 0}/5`;
-  desc.textContent = ev.description || 'No description.';
+  desc.textContent  = ev.description || 'No description.';
 
-  // Stäng-knapp
   document.getElementById('detail-close').onclick = () => dlg.close();
 
   dlg.showModal();
 }
 
-
 function makeCard(ev) {
   const article = document.createElement('article');
   article.className = 'event-posts';
-  
+
   if (ev.image) {
     article.style.backgroundImage = `url(${ev.image})`;
-    article.classList.add('has-image'); // för ev. extra styling
+    article.classList.add('has-image');
   } else {
     article.style.removeProperty('background-image');
     article.classList.remove('has-image');
@@ -302,7 +271,6 @@ function makeCard(ev) {
 
   header.append(badge, right);
 
-  // titel + chips
   const body = document.createElement('div');
   body.className = 'event-post-body';
 
@@ -315,7 +283,7 @@ function makeCard(ev) {
 
   const dateChip = document.createElement('span');
   dateChip.className = 'chip';
-  dateChip.textContent = 'Date: ' + ev.date;
+  dateChip.textContent = 'Date: ' + (ev.date || '-');
   extra.appendChild(dateChip);
 
   if (ev.location) {
@@ -325,57 +293,56 @@ function makeCard(ev) {
     extra.appendChild(locChip);
   }
 
-  // “snart”-indikator (om inom 7 dagar)
-  if (!isPast(ev.date) && isSoon(ev.date)) {
+  if (!isPast(ev.date || '') && isSoon(ev.date || '')) {
     const soon = document.createElement('span');
     soon.className = 'chip';
     soon.textContent = 'Soon!';
     extra.appendChild(soon);
   }
 
-  // knappar
   const actions = document.createElement('menu');
   actions.className = 'card-actions';
 
   const editBtn = document.createElement('button');
   editBtn.className = 'mini-btn edit';
   editBtn.textContent = 'Edit';
-  editBtn.addEventListener('click', () => openForm(ev.id));
+  editBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    alert('Edit event is not implemented with database yet.');
+  });
 
   const delBtn = document.createElement('button');
   delBtn.className = 'mini-btn danger delete';
   delBtn.textContent = 'Delete';
-  delBtn.addEventListener('click', () => delEvent(ev.id));
+  delBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    alert('Delete event is not implemented with database yet.');
+  });
 
   actions.append(editBtn, delBtn);
 
   body.append(title, extra, actions);
   article.append(header, body);
-  
-  
+
   article.style.cursor = 'pointer';
   article.addEventListener('click', (e) => {
-  // Undvik att öppna om man trycker på knappar eller rating
-    if (
-        e.target.closest('button') ||
-        e.target.closest('.rating')
-    ) {
+    if (e.target.closest('button') || e.target.closest('.rating')) {
       return;
     }
     openDetailDialog(ev);
   });
-  
+
   return article;
 }
 
 /* =======================
-   5) RATING (stjärnor)
+   5) RATING
    ======================= */
 function ratingComponent(ev) {
   const wrap = document.createElement('div');
   wrap.className = 'rating';
 
-  const past = isPast(ev.date);
+  const past = isPast(ev.date || '');
   for (let i = 1; i <= 5; i++) {
     const el = document.createElement(past ? 'button' : 'span');
     el.className = 'star' + (past ? ' btn' : '');
@@ -397,54 +364,65 @@ function ratingComponent(ev) {
 }
 
 /* =======================
-   6) FORMULÄR (Create/Update)
+   6) FORM (Create)
    ======================= */
 
-
 function openForm(id = null) {
-  // Om detalj-dialogen råkar vara öppen, stäng den
-  const detailDialog = document.getElementById('detail-dialog');
-  if (detailDialog && detailDialog.open) detailDialog.close();
-
-  editingId = id;
-  form.reset();
-
+  // por enquanto só implementamos "novo evento" com backend
   if (id) {
-    // ===== EDIT-LÄGE =====
-    const ev = events.find(e => e.id === id);
-    if (!ev) return; // säkerhet
-
-    formTitle.textContent = 'Edit event';
-
-    fCollection.value = ev.collection || '';
-    fName.value       = ev.name || '';
-    fLocation.value   = ev.location || '';
-    fDate.value       = ev.date || '';
-    fDesc.value       = ev.description || '';
-
-    // Visa inte filfält i edit (enligt dina krav)
-    if (imageRow) imageRow.style.display = 'none';
-  } else {
-    // ===== NEW-LÄGE =====
-    formTitle.textContent = 'New event';
-    if (imageRow) imageRow.style.display = ''; // visa filfältet för nya
+    alert('Edit event is not implemented with database yet.');
+    return;
   }
+
+  editingId = null;
+  form.reset();
+  formError.textContent = '';
+  formTitle.textContent = 'New event';
+
+  if (imageRow) imageRow.style.display = '';
 
   dialog.showModal();
 }
+
 cancelBtn.addEventListener('click', () => {
   dialog.close();
 });
 
+// Envio do formulário para o backend (criar novo evento)
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  formError.textContent = '';
+
+  const formData = new FormData(form);
+
+  try {
+    const res = await fetch('events_api.php', {
+      method: 'POST',
+      body: formData
+    });
+
+    const data = await res.json();
+
+    if (!data.success) {
+      formError.textContent = data.error || 'Error saving event.';
+      return;
+    }
+
+    dialog.close();
+    await loadEvents(); // recarrega eventos do banco
+  } catch (err) {
+    console.error('Error saving event:', err);
+    formError.textContent = 'Unexpected error saving event.';
+  }
+});
+
 function delEvent(id) {
-  if (!confirm('Radera detta event?')) return;
-  const i = events.findIndex(e => e.id === id);
-  if (i >= 0) events.splice(i, 1);
-  render();
+  alert('Delete event is not implemented with database yet.');
 }
 
 /* =======================
-   8) FILTER-KNAPPAR
+   8) FILTER BUTTONS
    ======================= */
 filterComing.addEventListener('click', () => {
   filter = 'coming';
@@ -460,27 +438,38 @@ filterAll.addEventListener('click', () => {
 });
 
 /* =======================
-   9) NYTT EVENT
+   9) NEW EVENT
    ======================= */
 newEvent.addEventListener('click', () => openForm(null));
 
 /* =======================
-   10) STARTA
+   10) LOAD EVENTS FROM BACKEND
    ======================= */
-render();
+async function loadEvents() {
+  try {
+    const res = await fetch('events_api.php');
+    const data = await res.json();
 
-// >>> NOVO: conecta o botão "Create New Collection" desta página
+    if (!data.success) {
+      console.error('Error from API:', data.error);
+      return;
+    }
+
+    events = data.events || [];
+    render();
+  } catch (err) {
+    console.error('Error loading events:', err);
+  }
+}
+
+// Inicia
+loadEvents();
+
+// >>> conecta o botão "Create New Collection" desta página
 attachCreateCollectionHandler();
 
-
-/* === Universal Nav (Events Page) ============================================
-   Purpose:
-   - Wire "Events" (self with ?c=...) and "Collections"
-   - Auto-inject "← Back to Collection" if absent
-   - Use ?c from current URL
-============================================================================= */
+/* === Universal Nav (Events Page) ============================================ */
 (() => {
-  // --- Helpers ---
   const getMeta = (n, f='') => (document.querySelector(`meta[name="${n}"]`)?.getAttribute('content') ?? f) + '';
   const APP_BASE = getMeta('app-base').replace(/\/+$/, '');
   const EVENTS_PAGE = getMeta('events-page-path', 'event.html').replace(/^\/+/, '');
@@ -523,16 +512,13 @@ attachCreateCollectionHandler();
 
   function ready(fn){ document.readyState !== 'loading' ? fn() : document.addEventListener('DOMContentLoaded', fn); }
   ready(() => {
-    // "Events" here just refreshes this page with the right ?c
     wireByTextOrData('events', eventsUrl);
     wireByTextOrData('collections', collectionsUrl);
     ensureBackToCollection();
   });
 })();
 
-/* === Universal Profile Wiring (drop-in) =====================================
-   ... (resto inalterado)
-============================================================================== */
+/* === Universal Profile Wiring ============================================== */
 (() => {
   if (document.documentElement.dataset.profileWired === '1') return;
   document.documentElement.dataset.profileWired = '1';

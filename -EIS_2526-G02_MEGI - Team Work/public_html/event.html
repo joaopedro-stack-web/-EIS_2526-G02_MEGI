@@ -6,12 +6,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <!-- Global routing hints used by nav.js -->
-  <meta name="app-base" content=""> <!-- if your app runs under /app, set /app -->
+  <meta name="app-base" content="">
   <meta name="item-page-path" content="index.html">
   <meta name="events-page-path" content="event.html">
   <meta name="collection-page-path" content="collection-page.html">
   <meta name="collectors-page-path" content="Homepage.login.html">
-<meta name="community-page-path" content="Team_page2.html">
+  <meta name="community-page-path" content="Team_page2.html">
 
   <!-- Styles -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -28,10 +28,8 @@
       <nav class="nav">
         <a class="nav-link" data-nav="collector"   href="#">Collector</a>
         <a class="nav-link" data-nav="collections" href="#">Collections</a>
-        <!-- "Explore" is not wired by nav.js; keep as-is or add your own handler -->
         <a class="nav-link active" data-nav="events" href="#">Events</a>
         <a class="nav-link" data-nav="community"   href="#">Community</a>
-        
       </nav>
     </aside>
 
@@ -39,16 +37,16 @@
     <header class="topmenu" role="banner">
       <div class="brand">Collecta<span class="brand">•</span>Hub</div>
       <nav class="actions">
-        <!-- Action buttons (callbacks in CollectaNav.init) -->
-<button type="button" class="btn btn--ghost" aria-label="Open profile" onclick="window.location.href='profile_page1.html';">
-  <!-- user icon -->
-  <svg aria-hidden="true" class="icon" role="img" viewBox="0 0 24 24"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-5.33 0-8 2.67-8 6v1h16v-1c0-3.33-2.67-6-8-6Z"></path></svg>
-  <span>Profile</span>
-</button>
+        <button type="button" class="btn btn--ghost" aria-label="Open profile" onclick="window.location.href='profile_page1.html';">
+          <svg aria-hidden="true" class="icon" role="img" viewBox="0 0 24 24">
+            <path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-5.33 0-8 2.67-8 6v1h16v-1c0-3.33-2.67-6-8-6Z"></path>
+          </svg>
+          <span>Profile</span>
+        </button>
       </nav>
     </header>
 
-    <!-- Main content (id kept for consistency; c=<collectionId> comes from URL) -->
+    <!-- Main content -->
     <main id="main-content" class="middle" aria-label="Events main content">
       <div class="rank-add">
         <div class="filter">
@@ -63,25 +61,35 @@
 
       <!-- Create/Edit dialog -->
       <dialog id="event-dialog">
-        <form id="event-form">
+        <form id="event-form" method="post" enctype="multipart/form-data">
           <h3 id="form-title">New event</h3>
 
-          <label>Collection* <input type="text" id="form-collection" required/></label>
-          <label>Name*       <input type="text" id="form-name" required/></label>
-          <label>Location*   <input type="text" id="form-location" required/></label>
-          <label>Date*       <input type="date" id="form-date" required/></label>
-          <label>Description*<textarea id="form-desc" required></textarea></label>
+          <label>Collection* 
+            <input type="text" id="form-collection" name="collection" required />
+          </label>
+          <label>Name*       
+            <input type="text" id="form-name" name="name" required />
+          </label>
+          <label>Location*   
+            <input type="text" id="form-location" name="location" required />
+          </label>
+          <label>Date*       
+            <input type="date" id="form-date" name="date" required />
+          </label>
+          <label>Description*
+            <textarea id="form-desc" name="description" required></textarea>
+          </label>
 
           <div id="image-row">
             <label for="form-image">Image</label>
-            <input id="form-image" type="file" accept="image/*">
+            <input id="form-image" name="image" type="file" accept="image/*">
           </div>
 
           <p id="form-error" aria-live="polite"></p>
 
           <div class="form-actions">
             <button id="cancel" type="button" value="cancel">Cancel</button>
-            <button id="save" value="default">Save</button>
+            <button id="save" type="submit" value="default">Save</button>
           </div>
         </form>
       </dialog>
@@ -111,7 +119,7 @@
     </article>
   </dialog>
 
-  <!-- Card template -->
+  <!-- Card template (mantido se quiser reutilizar em outro fluxo, mas o JS cria os cards via DOM) -->
   <template id="events">
     <article class="event-posts">
       <img class="event-picture" src="images/default.jpg" alt="Event image">
@@ -147,30 +155,8 @@
     </article>
   </template>
 
-  <!-- Load global nav kit first, then your page script -->
+  <!-- Scripts -->
   <script src="common/nav.js" defer></script>
   <script src="js/eventjs.js" defer></script>
-
-  <!-- Initialize CollectaNav for this page -->
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      // Enable standard navigation + inject "← Back to Collection" on Events
-      window.CollectaNav.init({
-        autoBackButton: true,
-        onProfile(el) {
-          // Plug your real profile route or open a dropdown menu here
-          console.log('[nav] Profile clicked', el);
-        },
-        onConfig(el) {
-          // Open settings modal/page
-          console.log('[nav] Config clicked', el);
-        },
-        onCreate(el) {
-          // Open your "Create New Collection" flow
-          console.log('[nav] Create New Collection clicked', el);
-        }
-      });
-    });
-  </script>
 </body>
 </html>
