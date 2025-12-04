@@ -9,7 +9,8 @@ Click nbfs://nbhost/SystemFileSystem/Templates/ClientSide/css.css to edit this t
 :root{
     --pad: 24px;         
     --gap: 24px;          
-    --radius: 14px;       
+    --radius: 14px; 
+    --layout-pad: 16px;
     
     --card-bg: #fff;
     --card-border: #e9e9e9;
@@ -581,3 +582,111 @@ body {
 #backToCollectionBtn:where(button) {
   margin: 0 !important;
 }
+
+ /* Själva dialog-rutan */
+#event-dialog {
+  border: none;
+  padding: 0;
+  border-radius: 18px;
+
+  max-width: 640px;
+  width: min(640px, 92vw);   /* ungefär som i Bild 1 */
+
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+  background: #fff;
+}
+
+/* Mörk bakgrund bakom dialogen */
+#event-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(2px);
+}
+
+/* ==== FORM I NEW EVENT-DIALOGEN ==== */
+
+/* Lite luft runt allt innehåll */
+#event-form {
+  padding: 20px 24px 18px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Varje label blir en “rad” med text överst och fält under */
+#event-form > label {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+/* Själva fälten – full bredd och snygg kant */
+#event-form input[type="text"],
+#event-form input[type="date"],
+#event-form input[type="file"],
+#event-form textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #e5e5e5;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font: inherit;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,.05);
+}
+
+#event-form textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+/* Rad för “Image” så den passar in med de andra */
+#image-row {
+  margin-top: 4px;
+}
+
+/* Felmeddelande – om du använder det */
+#form-error {
+  min-height: 18px;
+  margin-top: 4px;
+  color: #c0362c;
+  font-size: 14px;
+}
+
+/* Knapparna längst ner i dialogen */
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 8px 24px 20px;
+}
+
+/* Bas-knappstil */
+.form-actions button {
+  border-radius: 999px;
+  border: 1px solid #e5e5e5;
+  padding: 8px 16px;
+  font-weight: 600;
+  cursor: pointer;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,.05);
+  transition: background .15s, box-shadow .15s, border-color .15s, transform .03s;
+}
+
+/* Cancel */
+#cancel {
+  background: #fff;
+}
+
+/* Save */
+#save {
+  background: #fff;
+}
+
+.form-actions button:hover {
+  transform: translateY(-3px);
+}
+
+
+
