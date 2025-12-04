@@ -61,12 +61,22 @@
 
       <!-- Create/Edit dialog -->
       <dialog id="event-dialog">
-        <form id="event-form" method="post" enctype="multipart/form-data">
+        <form id="event-form" action="events_api.php" method="POST" enctype="multipart/form-data">
           <h3 id="form-title">New event</h3>
 
-          <label>Collection* 
+          <!--<label>Collection* 
             <input type="text" id="form-collection" name="collection" required />
+          </label>-->
+          <label>Collection*
+            <select id="form-collection" name="collection" required>
+                <option value="">-- Select collection --</option>
+                <option value="1">Cars</option>
+                <option value="2">Coins</option>
+                <option value="3">Star Wars</option>
+    <!-- Lägg till fler collections här, med rätt ID och namn -->
+            </select>
           </label>
+
           <label>Name*       
             <input type="text" id="form-name" name="name" required />
           </label>
