@@ -1,119 +1,82 @@
 <?php
 
-// Antag att conexao.php definierar $pdo-objektet för databasanslutning.
-// Vi gör ingen require här, den kommer att inkluderas i events_api.php.
+// Esta classe segue o mesmo padrão de EventDAL.php,
+// mas operando na tabela `collection`.
 
-class EventDAL {
-    private $pdo;
+class CollectionDAL {
+    private PDO $pdo;
 
-    // Konstruktorn tar emot PDO-anslutningen (Data Access Object)
     public function __construct(PDO $pdo) {
         $this->pdo = $pdo;
     }
 
     /**
-     * Hämtar alla händelser. Måste joina för att få collection.name
-     * Istället för collection_id.
+     * Cria uma nova coleção.
+     *
+     * Campos da tabela `collection`:
+     *  - collection_id (AI)
+     *  - user_id
+     *  - name
+     *  - type
+     *  - creation_date
+     *  - description
+     *  - number_of_items
+     *  - image
      */
-    public function getAllEvents() {
-        // Observera JOIN-satsen: Hämtar collection.name istället för bara collection_id
-        $stmt = $this->pdo->query("
-            SELECT  e.event_id,
-                    e.collection_id,
-                    c.name AS collection_name,
-                    e.name,
-                    e.location,
-                    e.date,
-                    e.description,
-                    e.rating,
-                    e.image
-            FROM event e
-            JOIN collection c ON e.collection_id = c.collection_id
-            ORDER BY e.date ASC
-        ");
-
-        $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        $data = [];
-        foreach ($events as $e) {
-            $data[] = [
-                'id'            => $e['event_id'],
-                'collection_id' => $e['collection_id'],
-                // Använd det riktiga namnet från JOIN
-                'collection'    => $e['collection_name'], 
-                'name'          => $e['name'],
-                'location'      => $e['location'],
-                'date'          => $e['date'],
-                'description'   => $e['description'],
-                'rating'        => $e['rating'],
-                'image'         => $e['image'],
-            ];
-        }
-        return $data;
-    }
-
-    /**
-     * Skapar en ny händelse.
-     */
-    public function createEvent($collection_id, $name, $location, $date, $description, $imagePath) {
-        $sql = "INSERT INTO event (collection_id, name, location, date, description, image)
-                VALUES (:collection_id, :name, :location, :date, :description, :image)";
+    public function createCollection(
+        int $userId,
+        string $name,
+        ?string $type,
+        string $creationDate,
+        ?string $description,
+        ?string $imagePath
+    ): int {
+        $sql = "INSERT INTO collection 
+                (user_id, name, type, creation_date, description, number_of_items, image)
+                VALUES (:user_id, :name, :type, :creation_date, :description, :number_of_items, :image)";
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([
-            ':collection_id' => $collection_id,
-            ':name'          => $name,
-            ':location'      => $location,
-            ':date'          => $date,
-            ':description'   => $description,
-            ':image'         => $imagePath,
+            ':user_id'        => $userId,
+            ':name'           => $name,
+            ':type'           => $type,
+            ':creation_date'  => $creationDate,
+            ':description'    => $description,
+            ':number_of_items'=> 0,          // nova coleção começa com 0 itens
+            ':image'          => $imagePath,
         ]);
 
-        return $this->pdo->lastInsertId();
+        return (int) $this->pdo->lastInsertId();
     }
 
     /**
-     * Uppdaterar en befintlig händelse.
+     * Retorna todas as coleções de um usuário.
      */
-    public function updateEvent($id, $collection_id, $name, $location, $date, $description) {
-        $sql = "UPDATE event
-                SET collection_id = :collection_id,
-                    name          = :name,
-                    location      = :location,
-                    date          = :date,
-                    description   = :description
-                WHERE event_id    = :id";
+    public function getCollectionsByUser(int $userId): array {
+        $sql = "SELECT collection_id, user_id, name, type, creation_date,
+                       description, number_of_items, image
+                FROM collection
+                WHERE user_id = :user_id
+                ORDER BY creation_date DESC, collection_id DESC";
 
         $stmt = $this->pdo->prepare($sql);
-        return $stmt->execute([
-            ':collection_id' => $collection_id,
-            ':name'          => $name,
-            ':location'      => $location,
-            ':date'          => $date,
-            ':description'   => $description,
-            ':id'            => (int)$id,
-        ]);
+        $stmt->execute([':user_id' => $userId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     /**
-     * Raderar en händelse.
+     * Busca uma coleção específica por ID.
      */
-    public function deleteEvent($id) {
-        $stmt = $this->pdo->prepare("DELETE FROM event WHERE event_id = :id");
-        return $stmt->execute([':id' => (int)$id]);
-    }
+    public function getCollectionById(int $collectionId): ?array {
+        $sql = "SELECT collection_id, user_id, name, type, creation_date,
+                       description, number_of_items, image
+                FROM collection
+                WHERE collection_id = :id";
 
-    // Lägg till en plats för att uppdatera rating senare.
-    /*
-    public function updateRating($id, $rating) {
-        $stmt = $this->pdo->prepare("UPDATE event SET rating = :rating WHERE event_id = :id");
-        return $stmt->execute([':rating' => $rating, ':id' => (int)$id]);
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([':id' => $collectionId]);
+
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
     }
-    */
 }
-
-/* 
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Scripting/EmptyPHP.php to edit this template
- */
-

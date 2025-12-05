@@ -1,10 +1,10 @@
 /**
- * collection-page.js (clean + fixed + collections-data)
+ * collection-page.js (PHP-integrated + Events)
  * - Works with the provided HTML
- * - Lists/searches/filters items, creates/deletes
+ * - Lists/searches/filters items, creates/deletes (localStorage)
  * - Navigates to item page on click
  * - Wires "Events" navigation
- * - Integra com collections-data (coleções criadas via modal)
+ * - Integrado com collections_api.php (coleções) e events_api.php (eventos)
  */
 (() => {
   "use strict";
@@ -34,13 +34,11 @@
   }
 
   // ========================================================================
-  // Create New Collection (compartilhado com outras páginas)
+  // Create New Collection (modal integrado com PHP)
   // ========================================================================
   const COLLECTIONS_LS_KEY = 'collections-data';
 
   function openCreateCollectionModal() {
-    const existing = JSON.parse(localStorage.getItem(COLLECTIONS_LS_KEY) || '[]');
-
     const overlay = document.createElement('div');
     Object.assign(overlay.style, {
       position: 'fixed',
@@ -132,6 +130,7 @@
       if (e.target === overlay) close();
     });
 
+    // === SUBMIT -> ENVIA PARA PHP ===
     formCol.addEventListener('submit', (e) => {
       e.preventDefault();
       const data = new FormData(formCol);
@@ -149,24 +148,38 @@
       const fallbackImg = `https://picsum.photos/seed/collection-${Date.now()}/1200/600`;
       const img = imgInput || fallbackImg;
 
-      const newId = Date.now().toString();
+      const payload = new FormData();
+      payload.append('action', 'create');
+      payload.append('name', name);
+      payload.append('type', type);
+      payload.append('creation_date', dateCreated);
+      payload.append('description', desc);
+      payload.append('image', img);
 
-      const newCollection = {
-        id: newId,
-        title: name,
-        desc,
-        img,
-        type,
-        dateCreated
-      };
+      fetch('collections_api.php', {
+        method: 'POST',
+        body: payload
+      })
+        .then((res) => res.json())
+        .then((result) => {
+          if (!result || !result.success) {
+            const msg = result && result.error ? result.error : 'Erro ao criar coleção.';
+            alert(msg);
+            return;
+          }
 
-      existing.unshift(newCollection);
-      localStorage.setItem(COLLECTIONS_LS_KEY, JSON.stringify(existing));
+          close();
 
-      close();
+          const redirectUrl =
+            result.redirect_url ||
+            `collection-page.html?id=${encodeURIComponent(result.collection_id)}`;
 
-      // Redireciona para a Collection Page desta nova coleção
-      window.location.href = `collection-page.html?id=${encodeURIComponent(newId)}`;
+          window.location.href = redirectUrl;
+        })
+        .catch((err) => {
+          console.error(err);
+          alert('Erro inesperado ao criar coleção.');
+        });
     });
   }
 
@@ -510,7 +523,7 @@
     };
   }
 
-  /** ----------------------------- API layer (localStorage) ----------------------------- */
+  /** ----------------------------- API layer (localStorage para ITENS) ----------------------------- */
   const USE_REST = false;
   const api = USE_REST ? restApi() : localApi();
 
@@ -632,7 +645,7 @@
     });
   }
 
-  /** ----------------------------- Events button ----------------------------- */
+  /** ----------------------------- Events button (top nav) ----------------------------- */
   function wireEventsButton() {
     const targetHref = buildEventsUrl();
     const prefer = document.querySelector('[data-nav="events"]')
@@ -660,78 +673,22 @@
     });
   }
 
-  /** ----------------------------- Event wiring ----------------------------- */
-  function attachEvents() {
-    if (btnAddItem) on(btnAddItem, "click", modalCreateItem);
-    if (btnManage) on(btnManage, "click", modalManageCollection);
-    if (viewMoreBtn) on(viewMoreBtn, "click", async () => { await loadItems({ append: true, page: state.page + 1 }); });
+  // Cria (ou encontra) o botão "Create Event" na seção de ações da coleção
+  function ensureCreateEventButton() {
+    const actionsSection = qs("section.actions", main);
+    if (!actionsSection) return null;
 
-    if (searchInput) {
-      on(searchInput, "input", debounce(async () => {
-        state.search = searchInput.value.trim(); await reloadItems();
-      }, 250));
-    }
-    if (filterSelect) {
-      on(filterSelect, "change", async () => {
-        const v = filterSelect.value || "";
-        const filters = {};
-        if (v.startsWith("type:")) filters.type = v.split(":")[1];
-        else if (v === "rarity:high") filters.rarity = "high";
-        else if (v === "recent") filters.recent = true;
-        state.filters = filters; await reloadItems();
-      });
-    }
+    let btn = qs('button[aria-label="Create event for this collection"]', actionsSection);
+    if (btn) return btn;
 
-    if (grid) {
-  // delete
-  on(grid, "click", ".card__action--delete", async (e, btn) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+    btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "btn btn--secondary btn--lg";
+    btn.setAttribute("aria-label", "Create event for this collection");
+    btn.innerHTML = `<span>Create Event</span>`;
 
-    const card = btn.closest(".card");
-    if (!card) return;
-        const id = card.dataset.itemId;
-        const name = qs(".card__title", card)?.textContent?.trim() || "item";
-        const ok = await confirmDialog({
-          title: "Delete item",
-          message: `Are you sure you want to delete “${name}”? This action cannot be undone.`,
-          confirmText: "Delete", cancelText: "Cancel"
-        });
-        if (!ok) return;
-        try {
-          await api.deleteItem(collectionId, id);
-          state.items = state.items.filter(it => it.id !== id);
-          card.style.transition = "all .25s ease"; card.style.opacity = "0"; card.style.transform = "scale(.98)";
-          setTimeout(() => card.remove(), 250);
-          if (state.collection) {
-            state.collection.itemCount = clamp((state.collection.itemCount || 1) - 1, 0, 999999);
-            state.collection.lastRecordAt = isoNow();
-            renderStats(state.collection, state.collection.itemCount);
-          }
-          showToast("Item deleted.", "success");
-        } catch (err) { console.error(err); showToast("Could not delete item.", "error"); }
-      });
-
-      // navigate (card media/title)
-      on(grid, "click", ".card__media, .card__title a, .card", (e, el) => {
-        if (e.target.closest(".card__action--delete")) return;
-        const card = el.closest(".card");
-        const href = el.getAttribute("data-href") || qs(".card__title a", card)?.getAttribute("href");
-        if (href) { if (e.metaKey || e.ctrlKey) return; e.preventDefault(); window.location.href = href; }
-      });
-
-      // enter key
-      on(grid, "keydown", (e) => {
-        if (e.key === "Enter") {
-          const card = e.target.closest(".card");
-          if (card && grid.contains(card)) {
-            const href = qs(".card__title a", card)?.getAttribute("href");
-            if (href) { e.preventDefault(); window.location.href = href; }
-          }
-        }
-      });
-    }
+    actionsSection.appendChild(btn);
+    return btn;
   }
 
   /** ----------------------------- Create item modal ----------------------------- */
@@ -851,6 +808,126 @@
     });
   }
 
+  /** ----------------------------- Create event modal (based on collection) ----------------------------- */
+  function modalCreateEvent() {
+    const c = state.collection || {};
+
+    const form = document.createElement("form");
+    form.setAttribute("novalidate", "true");
+    form.innerHTML = `
+      <div style="padding:20px 20px 0">
+        <h2 id="dialog-title-event" style="font-size:18px;margin:0 0 8px">Create Event</h2>
+        <p style="margin:0 0 10px;opacity:.85">
+          Create an event related to this collection.
+        </p>
+        <p style="margin:0 0 10px;font-size:13px;opacity:.75">
+          Collection: <strong>${escapeHTML(c.title || "My Collection")}</strong>
+        </p>
+      </div>
+    `;
+
+    // Campos básicos do evento
+    const fields = {
+      name:       buildFormField({ label: "Event name", name: "name", required: true }),
+      location:   buildFormField({ label: "Location", name: "location", required: true }),
+      date:       buildFormField({ label: "Date", name: "date", type: "date", required: true }),
+      description: buildTextAreaField({ label: "Description", name: "description", rows: 4 })
+    };
+
+    // Valores padrão
+    fields.name.input.value = c.title ? `${c.title} event` : "";
+    fields.date.input.value = new Date().toISOString().slice(0, 10);
+    fields.description.input.value =
+      c.subtitle ||
+      `Event related to collection "${c.title || "My Collection"}".`;
+
+    const body = document.createElement("div");
+    body.style.padding = "0 20px 10px";
+    body.appendChild(fields.name.wrap);
+    body.appendChild(fields.location.wrap);
+    body.appendChild(fields.date.wrap);
+    body.appendChild(fields.description.wrap);
+
+    const footer = document.createElement("div");
+    footer.style.cssText = "display:flex;gap:8px;justify-content:flex-end;padding:10px 20px 20px";
+    footer.innerHTML = `
+      <button type="button" class="btn btn--ghost" data-cmd="cancel">Cancel</button>
+      <button type="submit" class="btn" data-cmd="create">Create event</button>
+    `;
+
+    form.append(body, footer);
+    const overlay = openModal(form, { labelledBy: "dialog-title-event" });
+
+    // Botão cancel
+    on(form, "click", (e) => {
+      const cmd = e.target.closest("[data-cmd]")?.dataset.cmd;
+      if (cmd === "cancel") {
+        e.preventDefault();
+        closeModal(overlay);
+      }
+    });
+
+    // Submit -> POST para events_api.php
+    on(form, "submit", async (e) => {
+      e.preventDefault();
+
+      const v = {
+        name: fields.name.input.value.trim(),
+        location: fields.location.input.value.trim(),
+        date: fields.date.input.value.trim(),
+        description: fields.description.input.value.trim()
+      };
+
+      // Limpa erros
+      showError(fields.name, "");
+      showError(fields.location, "");
+      showError(fields.date, "");
+
+      let ok = true;
+      if (!v.name)      { showError(fields.name, "Required"); ok = false; }
+      if (!v.location)  { showError(fields.location, "Required"); ok = false; }
+      if (!v.date)      { showError(fields.date, "Required"); ok = false; }
+
+      if (!v.description) {
+        v.description = `Event related to collection "${c.title || "My Collection"}".`;
+      }
+
+      if (!ok) return;
+
+      try {
+        const fd = new FormData();
+        // O backend espera o ID da coleção em "collection"
+        fd.append("collection", collectionId);
+        fd.append("name", v.name);
+        fd.append("location", v.location);
+        fd.append("date", v.date);
+        fd.append("description", v.description);
+        // Não vamos mandar imagem aqui; o PHP lida com imagePath = null
+
+        const res = await fetch("events_api.php", {
+          method: "POST",
+          body: fd
+        });
+
+        const json = await res.json();
+        if (!res.ok || !json.success) {
+          throw new Error(json.error || "Could not create event.");
+        }
+
+        closeModal(overlay);
+        showToast("Event created.", "success");
+
+        // Redireciona para a página de eventos da coleção
+        const targetHref = buildEventsUrl();
+        window.location.href = targetHref;
+
+      } catch (err) {
+        console.error(err);
+        showToast("Could not create event.", "error");
+      }
+    });
+  }
+
   /** ----------------------------- Manage Collection modal ----------------------------- */
   function modalManageCollection() {
     const c = state.collection || {};
@@ -904,66 +981,151 @@
     });
   }
 
-  /** ----------------------------- Data loading ----------------------------- */
-  async function loadCollection() {
-    // 1) Tenta carregar da API local (collecta:collections)
-    let collection = await api.getCollection(collectionId);
+  /** ----------------------------- Event wiring ----------------------------- */
+  function attachEvents() {
+    if (btnAddItem) on(btnAddItem, "click", modalCreateItem);
+    if (btnManage) on(btnManage, "click", modalManageCollection);
 
-    // 2) Lê também o que foi salvo em `collections-data` (Create New Collection)
-    let fromCustom = null;
-    try {
-      const raw = localStorage.getItem(COLLECTIONS_LS_KEY);
-      if (raw) {
-        const arr = JSON.parse(raw);
-        fromCustom = arr.find(c => String(c.id) === String(collectionId)) || null;
-      }
-    } catch {
-      fromCustom = null;
-    }
-
-    // 3) Se não existe nada em collecta:collections, cria usando DOM + fromCustom
-    if (!collection) {
-      const base = {
-        id: collectionId,
-        title: qs(".hero__title", main)?.textContent?.trim() || "My Collection",
-        subtitle: qs(".hero__subtitle", main)?.textContent?.trim() || "",
-        type: "Miniatures",
-        itemCount: qsa(".grid .card", main).length || 0,
-        createdAt: new Date("2023-01-12").toISOString(),
-        lastRecordAt: isoNow(),
-        coverImageUrl: qs(".hero__media img", main)?.src || "",
-      };
-
-      if (fromCustom) {
-        base.title = fromCustom.title || base.title;
-        base.subtitle = fromCustom.desc || base.subtitle;
-        base.coverImageUrl = fromCustom.img || base.coverImageUrl;
-        base.type = fromCustom.type || base.type;
-        if (fromCustom.dateCreated) {
-          base.createdAt = new Date(fromCustom.dateCreated).toISOString();
-        }
-      }
-
-      collection = await api.updateCollection(collectionId, base);
-    }
-    // 4) Se já existe em collecta:collections, mas também tem info em collections-data,
-    //    sincroniza título/descrição/capa/tipo/data de criação
-    else if (fromCustom) {
-      collection = await api.updateCollection(collectionId, {
-        ...collection,
-        title: fromCustom.title || collection.title,
-        subtitle: fromCustom.desc || collection.subtitle,
-        coverImageUrl: fromCustom.img || collection.coverImageUrl,
-        type: fromCustom.type || collection.type,
-        createdAt: collection.createdAt || (fromCustom.dateCreated
-          ? new Date(fromCustom.dateCreated).toISOString()
-          : isoNow())
+    // Botão "Create Event"
+    const btnCreateEvent = ensureCreateEventButton();
+    if (btnCreateEvent) {
+      on(btnCreateEvent, "click", (e) => {
+        e.preventDefault();
+        modalCreateEvent();
       });
     }
 
-    state.collection = collection;
-    renderCollectionHeader(collection);
-    renderStats(collection, collection.itemCount || 0);
+    if (viewMoreBtn) on(viewMoreBtn, "click", async () => { await loadItems({ append: true, page: state.page + 1 }); });
+
+    if (searchInput) {
+      on(searchInput, "input", debounce(async () => {
+        state.search = searchInput.value.trim(); await reloadItems();
+      }, 250));
+    }
+    if (filterSelect) {
+      on(filterSelect, "change", async () => {
+        const v = filterSelect.value || "";
+        const filters = {};
+        if (v.startsWith("type:")) filters.type = v.split(":")[1];
+        else if (v === "rarity:high") filters.rarity = "high";
+        else if (v === "recent") filters.recent = true;
+        state.filters = filters; await reloadItems();
+      });
+    }
+
+    if (grid) {
+      // delete
+      on(grid, "click", ".card__action--delete", async (e, btn) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+
+        const card = btn.closest(".card");
+        if (!card) return;
+        const id = card.dataset.itemId;
+        const name = qs(".card__title", card)?.textContent?.trim() || "item";
+        const ok = await confirmDialog({
+          title: "Delete item",
+          message: `Are you sure you want to delete “${name}”? This action cannot be undone.`,
+          confirmText: "Delete", cancelText: "Cancel"
+        });
+        if (!ok) return;
+        try {
+          await api.deleteItem(collectionId, id);
+          state.items = state.items.filter(it => it.id !== id);
+          card.style.transition = "all .25s ease"; card.style.opacity = "0"; card.style.transform = "scale(.98)";
+          setTimeout(() => card.remove(), 250);
+          if (state.collection) {
+            state.collection.itemCount = clamp((state.collection.itemCount || 1) - 1, 0, 999999);
+            state.collection.lastRecordAt = isoNow();
+            renderStats(state.collection, state.collection.itemCount);
+          }
+          showToast("Item deleted.", "success");
+        } catch (err) { console.error(err); showToast("Could not delete item.", "error"); }
+      });
+
+      // navigate (card media/title)
+      on(grid, "click", ".card__media, .card__title a, .card", (e, el) => {
+        if (e.target.closest(".card__action--delete")) return;
+        const card = el.closest(".card");
+        const href = el.getAttribute("data-href") || qs(".card__title a", card)?.getAttribute("href");
+        if (href) { if (e.metaKey || e.ctrlKey) return; e.preventDefault(); window.location.href = href; }
+      });
+
+      // enter key
+      on(grid, "keydown", (e) => {
+        if (e.key === "Enter") {
+          const card = e.target.closest(".card");
+          if (card && grid.contains(card)) {
+            const href = qs(".card__title a", card)?.getAttribute("href");
+            if (href) { e.preventDefault(); window.location.href = href; }
+          }
+        }
+      });
+    }
+  }
+
+  /** ----------------------------- Data loading ----------------------------- */
+  async function loadCollection() {
+    try {
+      // Busca a coleção direto no PHP
+      const res = await fetch(`collections_api.php?id=${encodeURIComponent(collectionId)}`);
+      if (!res.ok) {
+        throw new Error('HTTP ' + res.status);
+      }
+
+      const data = await res.json();
+      if (!data.success || !data.collection) {
+        throw new Error(data.error || 'Collection not found');
+      }
+
+      const c = data.collection;
+
+      const mapped = {
+        id: String(c.collection_id),
+        title: c.name || 'My Collection',
+        subtitle: c.description || '',
+        coverImageUrl: c.image || (qs('.hero__media img', main)?.src || ''),
+        type: c.type || 'Collection',
+        createdAt: c.creation_date
+          ? new Date(c.creation_date).toISOString()
+          : isoNow(),
+        itemCount:
+          typeof c.number_of_items === 'number'
+            ? c.number_of_items
+            : 0,
+        lastRecordAt: null,
+      };
+
+      // sincroniza com o "banco" local de collections (localStorage)
+      try {
+        await api.updateCollection(mapped.id, mapped);
+      } catch (err) {
+        console.warn('[loadCollection] could not sync local collection store', err);
+      }
+
+      state.collection = mapped;
+      renderCollectionHeader(mapped);
+      renderStats(mapped, mapped.itemCount);
+    } catch (err) {
+      console.error(err);
+      showToast('Could not load collection information from server.', 'error');
+
+      // Fallback: usa dados da página
+      const fallback = {
+        id: collectionId,
+        title: qs('.hero__title', main)?.textContent?.trim() || 'My Collection',
+        subtitle: qs('.hero__subtitle', main)?.textContent?.trim() || '',
+        coverImageUrl: qs('.hero__media img', main)?.src || '',
+        type: 'Collection',
+        createdAt: isoNow(),
+        itemCount: 0,
+        lastRecordAt: null,
+      };
+      state.collection = fallback;
+      renderCollectionHeader(fallback);
+      renderStats(fallback, fallback.itemCount);
+    }
   }
 
   async function loadItems({ append = false, page = 1 } = {}) {
@@ -1099,9 +1261,9 @@
 
   function installDelegatedHandlers() {
     document.addEventListener('click', (e) => {
-          // 🔒 Se o clique foi no botão de delete, não navega pra lugar nenhum
-  if (e.target.closest?.('.card__action--delete')) return;
-        
+      // Se o clique foi no botão de delete, não navega
+      if (e.target.closest?.('.card__action--delete')) return;
+
       const media = e.target.closest?.('.card__media');
       if (media && media.hasAttribute('data-href')) {
         const href = media.getAttribute('data-href');
@@ -1254,16 +1416,12 @@
       if (!cmd) return;
       e.preventDefault();
       if (cmd === 'see-profile') {
-        // Hook your real profile route here if you have one:
-        // window.location.href = '/profile.html';
         console.log('[profile] open profile');
       } else if (cmd === 'logout') {
         try {
-          // Demo: clear app keys if you use localStorage for demo auth
           Object.keys(localStorage).forEach(k => { if (k.startsWith('collecta:')) localStorage.removeItem(k); });
         } catch {}
         console.log('[profile] logout');
-        // Reload to reflect state
         setTimeout(() => window.location.reload(), 200);
       }
       closeProfileMenu();
@@ -1274,7 +1432,6 @@
     window.addEventListener('resize', closeProfileMenu);
     window.addEventListener('scroll', closeProfileMenu, true);
 
-    // Initial focus for a11y
     const first = menu.querySelector('.menu__item');
     if (first) first.focus();
 
@@ -1287,7 +1444,6 @@
     let btn = document.querySelector('button[aria-label="Open profile"], [data-nav="profile"]');
 
     if (!btn) {
-      // Fallback: any button/anchor in topbar-like areas whose visible text is "Profile"
       const candidates = Array.from(document.querySelectorAll(
         '.topbar .btn, .topbar__actions .btn, header .btn, a, button'
       ));
@@ -1304,7 +1460,6 @@
       console.warn('[profile] trigger not found on this page');
       return;
     }
-    // Make it look/behave like an interactive control for a11y
     if (!trigger.getAttribute('aria-haspopup')) trigger.setAttribute('aria-haspopup', 'menu');
     trigger.setAttribute('aria-expanded', 'false');
 

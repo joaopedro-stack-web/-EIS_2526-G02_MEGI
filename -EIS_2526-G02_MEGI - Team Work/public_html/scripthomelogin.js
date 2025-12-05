@@ -1,8 +1,7 @@
 (function () {
   const PAGE = document.body.getAttribute('data-page'); // 'collections', 'home', etc.
-  const LS_KEY = 'collections-data';
 
-  // Element
+  // Elements
   const listSection = document.querySelector('#collections-list');
   const titleEl     = listSection?.querySelector('h2');
   const seeMoreEl   = listSection?.querySelector('.see-more') || listSection?.querySelector('[data-nav="collections"]');
@@ -10,7 +9,7 @@
   const statsBar    = document.querySelector('#stats');
   const loginInfo   = document.querySelector('#login-info');
 
-  // Seed de dados se localStorage estiver vazio
+  // Seed de dados (fallback se o servidor falhar ou retornar vazio)
   const seedData = [
     { id: 1, title: 'Collection 1', desc: 'Some description about the collection...', img: 'https://picsum.photos/600/400?1' },
     { id: 2, title: 'Collection 2', desc: 'Some description about the collection...', img: 'https://picsum.photos/600/400?2' },
@@ -21,17 +20,15 @@
     { id: 7, title: 'Collection 7', desc: 'Extra to demo See More…',             img: 'https://picsum.photos/600/400?7' },
   ];
 
-  // Estad
+  // Estado agora começa vazio e será preenchido com o que vier do PHP
   const state = {
-    collections: JSON.parse(localStorage.getItem(LS_KEY) || 'null') ?? seedData,
+    collections: [],
     pageSize: 5,
-    page: 1
+    page: 1,
+    loading: false
   };
 
-  function save() {
-    localStorage.setItem(LS_KEY, JSON.stringify(state.collections));
-  }
-
+  // ---------------- Helpers de UI ----------------
   function clearRendered() {
     if (!listSection) return;
     // Mantém apenas o <h2> e o link "See More"; remove o resto
@@ -55,14 +52,14 @@
     const p = document.createElement('p');
     p.textContent = desc;
 
-    // Botão Delete
+    // Botão Delete (ainda só front-end, não remove do banco)
     const del = document.createElement('button');
     del.className = 'delete-btn';
     del.type = 'button';
     del.title = 'Delete';
     del.textContent = '🗑 Delete';
 
-    // Link "View Collection" (mesma URL usada em outras páginas)
+    // Link "View Collection" (usa o ID do banco)
     const link = document.createElement('a');
     link.href = `collection-page.html?id=${encodeURIComponent(id)}`;
     link.textContent = 'View Collection';
@@ -73,8 +70,54 @@
     return card;
   }
 
-  function render() {
+  // ---------------- Integração com PHP ----------------
+  function mapBackendCollection(c) {
+    return {
+      id: c.collection_id,
+      title: c.name || 'Untitled Collection',
+      desc: c.description || '',
+      img: c.image || `https://picsum.photos/seed/collection-${c.collection_id}/600/400`,
+    };
+  }
+
+  async function fetchCollectionsFromServer() {
+    state.loading = true;
+    try {
+      // GET collections_api.php
+      // Ideal: collections_api.php usa $_SESSION['user_id' ] para filtrar o usuário logado
+      const res = await fetch('collections_api.php');
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Could not load collections');
+
+      const arr = Array.isArray(data.collections) ? data.collections : [];
+      state.collections = arr.map(mapBackendCollection);
+
+      // Fallback se o servidor retornar vazio
+      if (!state.collections.length) {
+        state.collections = seedData.slice();
+      }
+    } catch (err) {
+      console.error('[home] fetchCollectionsFromServer failed', err);
+      // Fallback completo se falhar
+      if (!state.collections.length) {
+        state.collections = seedData.slice();
+      }
+    } finally {
+      state.loading = false;
+    }
+  }
+
+  async function render(options = {}) {
     if (!listSection) return;
+
+    const forceReload = !!options.forceReload;
+
+    // Carrega do servidor se ainda não carregou ou se forceReload = true
+    if (forceReload || !state.collections.length) {
+      await fetchCollectionsFromServer();
+    }
+
     clearRendered();
 
     const end    = state.page * state.pageSize;
@@ -90,7 +133,7 @@
     }
   }
 
-  // =============== NOVO: MODAL "CREATE NEW COLLECTION" (igual às outras páginas) ===============
+  // =============== MODAL "CREATE NEW COLLECTION" (integrado com PHP) ===============
   function openCreateCollectionModal() {
     const overlay = document.createElement('div');
     Object.assign(overlay.style, {
@@ -187,6 +230,7 @@
       if (e.target === overlay) close();
     });
 
+    // SUBMIT -> envia para collections_api.php (igual na collection-page)
     formCol.addEventListener('submit', (e) => {
       e.preventDefault();
       const data = new FormData(formCol);
@@ -208,34 +252,45 @@
         'https://picsum.photos/seed/collection-' + Date.now() + '/1200/600';
       const img = imgInput || fallbackImg;
 
-      const newId = Date.now();
+      const payload = new FormData();
+      payload.append('action', 'create');
+      payload.append('name', name);
+      payload.append('type', type);
+      payload.append('creation_date', dateCreated);
+      payload.append('description', desc);
+      payload.append('image', img);
 
-      const newCollection = {
-        id: newId,
-        title: name,
-        desc,
-        img,
-        type,
-        dateCreated
-      };
+      fetch('collections_api.php', {
+        method: 'POST',
+        body: payload
+      })
+        .then(res => res.json())
+        .then(result => {
+          if (!result || !result.success) {
+            const msg = result && result.error ? result.error : 'Erro ao criar coleção.';
+            alert(msg);
+            return;
+          }
 
-      // Atualiza estado + localStorage + UI
-      state.collections.unshift(newCollection);
-      save();
-      state.page = 1;
-      render();
+          close();
 
-      close();
+          const redirectUrl =
+            result.redirect_url ||
+            `collection-page.html?id=${encodeURIComponent(result.collection_id)}`;
 
-      // Redireciona para a Collection Page dessa nova coleção (igual outras páginas)
-      window.location.href =
-        'collection-page.html?id=' + encodeURIComponent(newId);
+          // Depois de criar, já abre a Collection Page da nova coleção
+          window.location.href = redirectUrl;
+        })
+        .catch(err => {
+          console.error(err);
+          alert('Erro inesperado ao criar coleção.');
+        });
     });
   }
 
   // --------- Interações ----------
 
-  // Botão "Create New Collection" -> abre o MESMO modal das outras páginas
+  // Botão "Create New Collection"
   if (createBtn) {
     createBtn.addEventListener('click', (e) => {
       e.preventDefault();
@@ -243,17 +298,17 @@
     });
   }
 
-  // Ver mais (paginación)
+  // Ver mais (paginação local)
   if (seeMoreEl) {
     seeMoreEl.addEventListener('click', (e) => {
-      // se for o link "See More" (a) não queremos navegar
+      // se for link <a>, não queremos navegar
       if (seeMoreEl.tagName === 'A') e.preventDefault();
       state.page += 1;
       render();
     });
   }
 
-  // Eliminar (delegação na seção para captar clicks em .delete-btn)
+  // Eliminar (apenas front-end, não apaga no banco ainda)
   if (listSection) {
     listSection.addEventListener('click', (e) => {
       const btn = e.target.closest('.delete-btn');
@@ -266,8 +321,7 @@
       const ok = confirm('Are you sure you want to delete this collection?');
       if (!ok) return;
 
-      state.collections = state.collections.filter(c => c.id !== id);
-      save();
+      state.collections = state.collections.filter(c => Number(c.id) !== id);
 
       const maxPage = Math.max(1, Math.ceil(state.collections.length / state.pageSize));
       if (state.page > maxPage) state.page = maxPage;
@@ -293,7 +347,7 @@
     });
   }
 
-  // Config / Profile demo (aqui você pode plugar coisas reais depois)
+  // Config / Profile demo
   if (loginInfo) {
     loginInfo.addEventListener('click', (e) => {
       if (e.target.tagName !== 'BUTTON') return;
@@ -307,7 +361,11 @@
   }
 
   // Boot: só render em páginas que tenham #collections-list
-  if (PAGE === 'collections' || listSection) {
-    render();
+  async function init() {
+    if (PAGE === 'collections' || listSection) {
+      await render();
+    }
   }
+
+  init();
 })();
