@@ -1,82 +1,119 @@
 <?php
 
-// Esta classe segue o mesmo padrão de EventDAL.php,
-// mas operando na tabela `collection`.
-
-class CollectionDAL {
+class EventDAL {
     private PDO $pdo;
 
+    // Construtor recebe a conexão PDO
     public function __construct(PDO $pdo) {
         $this->pdo = $pdo;
     }
 
     /**
-     * Cria uma nova coleção.
-     *
-     * Campos da tabela `collection`:
-     *  - collection_id (AI)
-     *  - user_id
-     *  - name
-     *  - type
-     *  - creation_date
-     *  - description
-     *  - number_of_items
-     *  - image
+     * Busca todos os eventos com o nome da coleção (JOIN).
      */
-    public function createCollection(
-        int $userId,
+    public function getAllEvents(): array {
+        $stmt = $this->pdo->query("
+            SELECT  
+                e.event_id,
+                e.collection_id,
+                c.name AS collection_name,
+                e.name,
+                e.location,
+                e.date,
+                e.description,
+                e.rating,
+                e.image
+            FROM `event` e
+            JOIN collection c 
+              ON e.collection_id = c.collection_id
+            ORDER BY e.date ASC
+        ");
+
+        $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $data = [];
+
+        foreach ($events as $e) {
+            $data[] = [
+                'id'            => (int)$e['event_id'],
+                'collection_id' => (int)$e['collection_id'],
+                'collection'    => $e['collection_name'],
+                'name'          => $e['name'],
+                'location'      => $e['location'],
+                'date'          => $e['date'],
+                'description'   => $e['description'],
+                'rating'        => $e['rating'],
+                'image'         => $e['image'],
+            ];
+        }
+
+        return $data;
+    }
+
+    /**
+     * Cria um novo evento.
+     */
+    public function createEvent(
+        int $collectionId,
         string $name,
-        ?string $type,
-        string $creationDate,
-        ?string $description,
+        string $location,
+        string $date,
+        string $description,
         ?string $imagePath
     ): int {
-        $sql = "INSERT INTO collection 
-                (user_id, name, type, creation_date, description, number_of_items, image)
-                VALUES (:user_id, :name, :type, :creation_date, :description, :number_of_items, :image)";
+        $sql = "INSERT INTO `event`
+                (collection_id, name, location, date, description, image)
+                VALUES 
+                (:collection_id, :name, :location, :date, :description, :image)";
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([
-            ':user_id'        => $userId,
-            ':name'           => $name,
-            ':type'           => $type,
-            ':creation_date'  => $creationDate,
-            ':description'    => $description,
-            ':number_of_items'=> 0,          // nova coleção começa com 0 itens
-            ':image'          => $imagePath,
+            ':collection_id' => $collectionId,
+            ':name'          => $name,
+            ':location'      => $location,
+            ':date'          => $date,
+            ':description'   => $description,
+            ':image'         => $imagePath,
         ]);
 
         return (int) $this->pdo->lastInsertId();
     }
 
     /**
-     * Retorna todas as coleções de um usuário.
+     * Atualiza um evento existente.
      */
-    public function getCollectionsByUser(int $userId): array {
-        $sql = "SELECT collection_id, user_id, name, type, creation_date,
-                       description, number_of_items, image
-                FROM collection
-                WHERE user_id = :user_id
-                ORDER BY creation_date DESC, collection_id DESC";
+    public function updateEvent(
+        int $id,
+        int $collectionId,
+        string $name,
+        string $location,
+        string $date,
+        string $description
+    ): bool {
+        $sql = "UPDATE `event`
+                SET 
+                    collection_id = :collection_id,
+                    name          = :name,
+                    location      = :location,
+                    date          = :date,
+                    description   = :description
+                WHERE event_id    = :id";
 
         $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([':user_id' => $userId]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $stmt->execute([
+            ':collection_id' => $collectionId,
+            ':name'          => $name,
+            ':location'      => $location,
+            ':date'          => $date,
+            ':description'   => $description,
+            ':id'            => $id,
+        ]);
     }
 
     /**
-     * Busca uma coleção específica por ID.
+     * Remove um evento.
      */
-    public function getCollectionById(int $collectionId): ?array {
-        $sql = "SELECT collection_id, user_id, name, type, creation_date,
-                       description, number_of_items, image
-                FROM collection
-                WHERE collection_id = :id";
-
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([':id' => $collectionId]);
-
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $row ?: null;
+    public function deleteEvent(int $id): bool {
+        $stmt = $this->pdo->prepare("DELETE FROM `event` WHERE event_id = :id");
+        return $stmt->execute([':id' => $id]);
     }
 }
