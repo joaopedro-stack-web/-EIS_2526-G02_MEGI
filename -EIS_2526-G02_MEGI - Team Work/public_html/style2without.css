@@ -1,32 +1,23 @@
 /* =========================
-   COLECCIONISTA DASHBOARD (versión moderna)
+   COLECCIONISTA DASHBOARD (versão alinhada ao layout Profile)
    ========================= */
 
-/* =========================================================
+/* ========================================================
    GLOBAL VARIABLES (Clean white theme with black accents)
-<<<<<<< HEAD
    ========================================================= */
-
-
-/* ---------- VARIABLES ---------- */
 :root {
-  --bg: #f9f9f9;
-  --text: #222;
-  --primary: #000;
-  --accent: #ffcc00;
-  --card-bg: #fff;
-  --shadow: rgba(0, 0, 0, 0.1);
-  --radius: 16px;
-  --sidebar-w: 250px;
-   --layout-pad: 16px;         /* Global padding used by .layout */
-  --sidebar-w: 270px;         /* Sidebar width (kept for reference) */
-  --bg: #ffffff;              /* Page background */
-  --surface: #ffffff;         /* Cards/sections background */
-  --text: #111111;            /* Primary text (near-black) */
-  --muted: #6b6b6b;           /* Secondary text gray */
-  --primary: #111111;         /* Black accents */
-   --border: #e5e7eb;          /* Subtle borders */
-  
+  --layout-pad: 16px;         /* padding interno do card */
+  --sidebar-w: 270px;         /* largura da sidebar */
+
+  --bg: #ffffff;              /* fundo da página */
+  --surface: #ffffff;         /* fundo do “card” central */
+  --text: #111111;            /* texto principal */
+  --muted: #6b6b6b;           /* texto secundário */
+  --primary: #111111;         /* preto/acento */
+  --accent: #ffcc00;          /* amarelinho que você já usava */
+  --border: #e5e7eb;          /* bordas suaves */
+  --radius: 16px;             /* cantos arredondados */
+  --shadow: 0 6px 20px rgba(2, 6, 23, 0.06); /* sombra suave */
 }
 
 /* =========================================================
@@ -34,123 +25,171 @@
    ========================================================= */
 *,
 *::before,
-*::after { box-sizing: border-box; }
+*::after {
+  box-sizing: border-box;
+}
 
-html, body { height: 100%; }
+html,
+body {
+  height: 100%;
+}
 
 body {
   margin: 0;
-  font-family: "Inter", Arial, sans-serif;
-  background-color: var(--bg);
+  font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, Ubuntu,
+    Cantarell, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji",
+    "Segoe UI Emoji", "Segoe UI Symbol";
+  line-height: 1.5;
+  background:
+    radial-gradient(circle at 8px 8px, rgba(0,0,0,0.06) 1px, transparent 1px)
+    0 0 / 24px 24px,
+    var(--bg);
   color: var(--text);
-  display: grid;
-  grid-template-areas:
-    "header header header"
-    "sidebar main   aside"
-    "footer footer  footer";
-  grid-template-columns: 270px 1fr 320px;
-  gap: 20px;
 }
 
 /* =========================================================
-   HEADER (Topbar) - Ajustado para estilo Collection Page
+   LAYOUT (mesmo conceito da profile_page1: card central)
    ========================================================= */
+.layout {
+  max-width: 1400px;
+  margin: 24px auto;
+  padding: var(--layout-pad);
+  background: var(--surface);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  display: grid;
+  grid-template-areas:
+    "header header"
+    "sidebar main"
+    "footer footer";
+  grid-template-columns: 280px 1fr;
+  gap: 20px;
+  min-height: calc(100vh - 48px);
+}
+
+/* Áreas */
 header {
   grid-area: header;
-  background: #000000;  /* Black background */
-  color: white;
+}
+aside {
+  grid-area: sidebar;
+}
+main {
+  grid-area: main;
+}
+footer {
+  grid-area: footer;
+}
+
+/* =========================================================
+   HEADER (Topbar) - mesmo “feeling” das outras páginas
+   ========================================================= */
+header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 16px;
+  justify-content: space-between;
+
+  /* Faz a topbar “grudar” nas bordas do card */
+  margin: calc(-1 * var(--layout-pad)) calc(-1 * var(--layout-pad)) 0;
+  padding: 10px 16px;
+
   position: sticky;
   top: 0;
-  z-index: 10;
-  border-radius: var(--radius) var(--radius) 0 0; /* Rounded top corners */
-  box-shadow: var(--shadow);  /* Soft shadow */
+  z-index: 20;
+
+  background: #000000;
+  color: #ffffff;
+  border-bottom: 1px solid #111111;
+  border-radius: var(--radius) var(--radius) 0 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 
 header h1 {
+  margin: 0;
   font-size: 1.4rem;
-  font-weight: 700;  /* Bold font for the header title */
+  font-weight: 700;
 }
 
-/* Button styles in the topbar (Profile) */
-/* Estilo ajustado para o botão Profile na topbar */
+/* Botão de Profile na topbar (mesma pegada do profile_page1) */
 #login-info button {
-  background: white;
-  color: var(--primary); /* Black text */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  background: #ffffff;
+  color: var(--primary);
   border: 1px solid var(--border);
-  padding: 10px 16px; /* Tamanho ajustado do botão */
+  padding: 6px 12px;
   border-radius: 10px;
   cursor: pointer;
   font-weight: 600;
-  font-size: 14px; 
-  display: flex;/* Ajuste da fonte para torná-la mais uniforme */
-  align-items: center;
-  justify-content: center;
-  transition: background 0.3s, color 0.3s, transform 0.1s ease; /* Adicionado transform */
+  font-size: 14px;
+  gap: 8px;
+
+  transition:
+    background 0.3s,
+    color 0.3s,
+    transform 0.1s ease,
+    box-shadow 0.15s ease;
 }
 
 #login-info button:hover {
-  background: var(--accent); /* Accent color on hover */
-  color: #000; /* Black text when hovered */
-  transform: translateY(-1px); /* Pequeno efeito de "elevação" */
+  background: #f1f1f1;
+  color: #000;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 12px rgba(2,6,23,0.08);
 }
 
-/* Ícones no botão de perfil */
 #login-info button svg {
-  width: 20px; /* Ajuste o tamanho do ícone */
-  height: 20px;
-  fill: currentColor; /* Para usar a cor do texto */
-  margin-right: 8px; /* Distância do texto */
-}
-
-#login-info button {
-  background: white;
-  color: var(--primary); /* Black text */
-  border: 1px solid var(--border);
-  padding: 6px 12px;
-  border-radius: var(--radius);
-  cursor: pointer;
-  font-weight: 600;
-  transition: background 0.3s;
-}
-
-#login-info button:hover {
-  background: var(--accent); /* Accent color on hover */
-  color: #000; /* Black text when hovered */
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
 }
 
 /* =========================================================
-   SIDEBAR (Aside)
+   SIDEBAR (Left nav)
    ========================================================= */
 aside {
   position: sticky;
   top: 8px;
+  align-self: start;
+
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 16px;
   box-shadow: var(--shadow);
+
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 220px;
 }
 
 aside button#create-collection {
   background: var(--primary);
-  color: white;
+  color: #ffffff;
   border: none;
   padding: 10px 16px;
   border-radius: var(--radius);
   cursor: pointer;
-  transition: background 0.3s;
   font-size: 14px;
-  font-weight: bold;
-  gap: 14px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background 0.3s, color 0.3s, transform 0.1s ease;
 }
 
 aside button#create-collection:hover {
   background: var(--accent);
   color: #000;
+  transform: translateY(-1px);
+}
+
+aside #create-collection {
+  margin-bottom: 20px;
 }
 
 aside nav ul {
@@ -159,7 +198,7 @@ aside nav ul {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
 }
 
 aside nav ul li a {
@@ -170,29 +209,26 @@ aside nav ul li a {
   display: flex;
   align-items: center;
   gap: 10px;
-  border-radius: 10px;  /* Rounded corners */
+  border-radius: 10px;
   transition: background 0.2s, color 0.2s;
 }
 
 aside nav ul li a:hover {
-  background: #f1f5f9; /* Light background color on hover */
+  background: #f1f5f9;
 }
 
 aside nav ul li a[aria-current="page"] {
-  background: rgba(0, 0, 0, 0.06); /* Subtle black wash for active page */
+  background: rgba(0, 0, 0, 0.06);
   color: var(--text);
-  font-weight: 700; /* Bold for active link */
+  font-weight: 700;
 }
-/* ---------- MAIN ---------- */
-main {
-  grid-area: main;
-  padding: 32px;
-  overflow-y: auto;
 
-  /* FIX: Center content and prevent narrow squeeze */
+/* =========================================================
+   MAIN CONTENT
+   ========================================================= */
+main {
+  padding: 16px 8px 24px;
   width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
 }
 
 /* ---- Stats Buttons ---- */
@@ -202,27 +238,31 @@ main {
   flex-wrap: wrap;
   margin-bottom: 24px;
 }
+
 #stats button {
   background: var(--primary);
-  color: white;
+  color: #ffffff;
   border: none;
-  padding: 12px 20px;
+  padding: 10px 16px;
   border-radius: var(--radius);
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.3s;
+  transition: background 0.3s, color 0.3s, transform 0.1s ease;
 }
+
 #stats button:hover {
   background: var(--accent);
   color: #000;
+  transform: translateY(-1px);
 }
 
-/* ---- Collections ---- */
+/* ---- Collections Grid ---- */
 #collections-list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); /* wider min size */
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 24px;
 }
+
 #collections-list > h2 {
   grid-column: 1 / -1;
   font-size: 1.6rem;
@@ -230,32 +270,93 @@ main {
   margin-bottom: 10px;
   color: var(--primary);
 }
+
 .collection-item {
-  background: var(--card-bg);
+  background: var(--surface);
   border-radius: var(--radius);
-  box-shadow: 0 3px 10px var(--shadow);
+  box-shadow: 0 3px 10px rgba(0,0,0,0.1);
   overflow: hidden;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
+
 .collection-item:hover {
   transform: translateY(-6px);
-  box-shadow: 0 6px 16px var(--shadow);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.15);
 }
+
 .collection-item img {
   width: 100%;
   height: 200px;
   object-fit: cover;
 }
+
 .collection-item h3 {
   padding: 12px 16px 4px;
   font-size: 1.1rem;
   color: var(--primary);
 }
+
 .collection-item p {
   padding: 0 16px 16px;
   color: #555;
   font-size: 0.95rem;
 }
+
+/* Botão "View Collection" dentro dos cards */
+.collection-item .view-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  margin: 0 16px 16px;
+  padding: 8px 14px;
+
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #ffffff;
+  color: var(--primary);
+
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+
+  transition: background 0.2s ease, color 0.2s ease, transform 0.1s ease;
+}
+
+.collection-item .view-btn:hover {
+  background: var(--accent);
+  color: #000;
+  transform: translateY(-1px);
+}
+
+/* Botão DELETE dentro dos cards */
+.collection-item .delete-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  margin: 12px 16px 0;
+  padding: 7px 12px;
+
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+
+  color: #b40000;
+  font-size: 0.85rem;
+  font-weight: 600;
+
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease, color 0.2s ease;
+}
+
+.collection-item .delete-btn:hover {
+  background: #ffe5e5;
+  color: #7a0000;
+  transform: translateY(-1px);
+}
+
 #collections-list > a {
   grid-column: 1 / -1;
   text-align: center;
@@ -265,38 +366,83 @@ main {
   margin-top: 8px;
   transition: color 0.3s;
 }
+
 #collections-list > a:hover {
   color: var(--accent);
 }
 
-/* ---------- FOOTER ---------- */
+/* =========================================================
+   FOOTER
+   ========================================================= */
 footer {
-  grid-area: footer;
-  background: var(--primary);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  margin-top: auto;
+  text-align: center;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
   font-size: 0.9rem;
 }
 
-/* ---------- RESPONSIVE ---------- */
-@media (max-width: 900px) {
-  body {
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+@media (max-width: 1199.98px) {
+  .layout {
     grid-template-areas:
-      "header"
-      "main"
-      "footer";
-    grid-template-columns: 1fr;
-    grid-template-rows: 70px 1fr 60px;
+      "header header"
+      "sidebar sidebar"
+      "main main"
+      "footer footer";
+    grid-template-columns: 1fr 1fr;
   }
+
   aside {
-    display: none;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
   }
-  main {
-    padding: 20px;
-    max-width: 100%;
+
+  aside nav ul {
+    flex-direction: row;
+    flex-wrap: wrap;
   }
 }
 
+@media (max-width: 767.98px) {
+  .layout {
+    padding: 12px;
+    gap: 12px;
+  }
 
+  main {
+    padding: 12px 4px 20px;
+  }
+}
+/* =========================
+   LOGIN + REGISTER buttons (matching your design)
+   ========================= */
+
+/* LOGIN Y REGISTER (blanco con texto negro) */
+#login-buttons .btn--ghost,
+#login-buttons .btn--primary {
+  background: #ffffff;
+  color: #000000;
+  border: 2px solid #000000;
+  padding: 8px 16px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+}
+
+/* Hover elegante */
+#login-buttons .btn--ghost:hover,
+#login-buttons .btn--primary:hover {
+  background: #f0f0f0;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+  color: #000000;
+}
