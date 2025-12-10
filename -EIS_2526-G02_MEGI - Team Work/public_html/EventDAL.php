@@ -49,6 +49,31 @@ class EventDAL {
         return $data;
     }
 
+    public function getEventOwnerId(int $eventId): ?int {
+        $stmt = $this->pdo->prepare("
+            SELECT c.user_id
+            FROM `event` e
+            JOIN collection c ON e.collection_id = c.collection_id
+            WHERE e.event_id = :id
+        ");
+        $stmt->execute([':id' => $eventId]);
+        $result = $stmt->fetchColumn();
+        return $result ? (int)$result : null;
+    }  
+    
+    public function checkIfUserOwnsCollection(int $userId, int $collectionId): bool {
+        $stmt = $this->pdo->prepare("
+            SELECT 1 
+            FROM collection 
+            WHERE collection_id = :collection_id AND user_id = :user_id
+        ");
+        $stmt->execute([
+            ':collection_id' => $collectionId,
+            ':user_id'       => $userId,
+        ]);
+        // Returnerar true om en rad hittades (dvs. ägandet bekräftades)
+        return $stmt->fetchColumn() === '1'; 
+    }
     /**
      * Cria um novo evento.
      */
@@ -106,6 +131,17 @@ class EventDAL {
             ':date'          => $date,
             ':description'   => $description,
             ':id'            => $id,
+        ]);
+    }
+    
+    
+    public function updateEventRating(int $eventId, int $rating): bool {
+        $sql = "UPDATE `event` SET rating = :rating WHERE event_id = :id";
+
+        $stmt = $this->pdo->prepare($sql);
+        return $stmt->execute([
+            ':rating' => $rating,
+            ':id'     => $eventId,
         ]);
     }
 

@@ -1390,96 +1390,89 @@ function makeCard(ev) {
 
  
 
-function ratingComponent(ev) {
-
- 
-
+/*function ratingComponent(ev) {
   const wrap = document.createElement('div');
-
- 
-
   wrap.className = 'rating';
-
- 
-
-
- 
-
   const past = isPast(ev.date || '');
-
- 
-
   for (let i = 1; i <= 5; i++) {
-
- 
-
     const el = document.createElement(past ? 'button' : 'span');
-
- 
-
     el.className = 'star' + (past ? ' btn' : '');
-
- 
-
     el.textContent = (ev.rating || 0) >= i ? '★' : '☆';
-
- 
-
     el.setAttribute('aria-label', `${i} stars`);
-
- 
-
+    
     if ((ev.rating || 0) === i) el.setAttribute('aria-pressed', 'true');
 
- 
-
-
- 
-
     if (past) {
-
- 
-
       el.addEventListener('click', () => {
-
- 
-
         ev.rating = i;
-
- 
-
         render();
-
- 
-
       });
 
- 
-
     } else {
-
- 
-
       el.title = 'Grades can be given after the date';
-
- 
-
     }
 
- 
-
     wrap.appendChild(el);
-
- 
-
   }
 
- 
-
   return wrap;
+}*/
 
- 
+function ratingComponent(ev) {
+  const wrap = document.createElement('div');
+  wrap.className = 'rating';
 
+  const past = isPast(ev.date || '');
+  const eventId = ev.id; 
+
+  for (let i = 1; i <= 5; i++) {
+    const el = document.createElement(past ? 'button' : 'span');
+    el.className = 'star' + (past ? ' btn' : '');
+    el.textContent = (ev.rating || 0) >= i ? '★' : '☆';
+    el.setAttribute('aria-label', `${i} stars`);
+    el.setAttribute('data-value', i); 
+    
+    if ((ev.rating || 0) === i) el.setAttribute('aria-pressed', 'true');
+
+    if (past) {
+      el.addEventListener('click', async (e) => {
+        e.stopPropagation(); 
+        
+        // --- NY LOGIK: SKICKA TILL BACKEND ---
+        const newRating = i;
+        
+        const formData = new FormData();
+        formData.append('action', 'rate');
+        formData.append('id', eventId);
+        formData.append('rating', newRating);
+        
+        try {
+            const response = await fetch('events_api.php', {
+                method: 'POST',
+                body: formData,
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Ladda om alla event för att uppdatera den synliga ratingen
+                await loadEvents(); 
+            } else {
+                alert('Could not set rating: ' + (result.error || 'Check if you are authenticated.'));
+            }
+        } catch (error) {
+            console.error('API Error:', error);
+            alert('An unexpected error occurred while rating the event.');
+        }
+        // -------------------------------------
+      });
+    } else {
+      el.title = 'Grades can be given after the date';
+    }
+
+    wrap.appendChild(el);
+  }
+  return wrap;
 }
 
  
@@ -1679,7 +1672,7 @@ function openForm(id = null) {
  
 
 
- 
+  loadCollections();
 
   dialog.showModal();
 
@@ -2159,7 +2152,7 @@ async function loadCollections() {
 
             const option = document.createElement('option');
 
-            option.value = col.id;
+            option.value = col.collection_id;
 
             option.textContent = col.name;
 
@@ -2188,7 +2181,6 @@ loadEvents();
 
  
 
-loadCollections();
 
  
 

@@ -73,8 +73,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
-        // Här skulle du lägga in din BEHÖRIGHETSKONTROLL (Kritiskt för Sprint 2)
-        // if (!hasPermissionToEditEvent($id, $currentUser)) { ... }
 
         if (!$currentUserId) {
             http_response_code(401);
@@ -94,6 +92,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             // ANROP TILL DAL
             $eventDal->updateEvent($id, $collection_id, $name, $location, $date, $description);
+
+            echo json_encode(['success' => true]);
+            exit;
+
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+            exit;
+        }
+    }
+    
+    //rating
+    if (isset($_POST['action']) && $_POST['action'] === 'rate') {
+        $id     = $_POST['id']     ?? null;
+        $rating = $_POST['rating'] ?? null;
+
+        if ($id === null || $rating === null || !is_numeric($rating) || $rating < 1 || $rating > 5) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Invalid event ID or rating value.']);
+            exit;
+        }
+
+        // 1. Autentisering (Endast inloggade får betygsätta)
+        if (!$currentUserId) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'error' => 'Not authenticated.']);
+            exit;
+        }
+
+        // OBS! Vi hoppar över ägarkontroll för Rating (alla inloggade får betygsätta)
+        
+        try {
+            // ANROP TILL DAL
+            $eventDal->updateEventRating((int)$id, (int)$rating);
 
             echo json_encode(['success' => true]);
             exit;
