@@ -4,7 +4,7 @@ require "connect.php";
 
 // If user already logged in
 if (isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true) {
-    header("location: Homepage.logout.html");
+    header("location: Homepage.login.html");
     exit;
 }
 
