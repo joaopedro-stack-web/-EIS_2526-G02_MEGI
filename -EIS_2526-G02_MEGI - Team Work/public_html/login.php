@@ -174,7 +174,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <body>
 
 <div class="login-container">
-    <h1>Welcome back ❤️</h1>
+    <h1>Welcome back </h1>
     <p class="subtitle">Log into your account</p>
 
     <?php if (!empty($login_err)) : ?>
