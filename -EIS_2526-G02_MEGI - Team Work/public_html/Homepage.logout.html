@@ -29,11 +29,11 @@
 
                 <!-- LOGIN BUTTONS -->
                 <div id="login-buttons" class="topbar-actions">
-                    <button class="btn btn--ghost" onclick="window.location.href = 'login.html';">
+                    <button class="btn btn--ghost" onclick="window.location.href = 'login.php';">
                         Log In
                     </button>
 
-                    <button class="btn btn--primary" onclick="window.location.href = 'register.html';">
+                    <button class="btn btn--primary" onclick="window.location.href = 'register.php';">
                         Register
                     </button>
                 </div>
@@ -44,7 +44,9 @@
             <aside aria-label="Sidebar navigation">
                 <nav>
                     <ul>
-                        <li><a href="Homepage.withoutlogin.html" data-nav="collector">Collector</a></li>
+                        <!-- aponta para a própria home deslogada (evita 404 se "Homepage.withoutlogin.html" não existir) -->
+                        <li><a href="Homepage.logout.html" data-nav="collector">Collector</a></li>
+
                         <li><a href="collection-page.html" data-nav="collections">Collections</a></li>
                         <li><a href="event.html" data-nav="events">Events</a></li>
                         <li><a href="team_page2.html" data-nav="community">Community</a></li>
@@ -84,7 +86,8 @@
                         <p>Dive into literary treasures collected by passionate readers.</p>
                     </div>
 
-                    <a href="#" data-nav="collections">See More</a>
+                    <!-- antes era href="#" (não faz nada). agora leva pra página de collections -->
+                    <a href="collection-page.html" data-nav="collections">See More</a>
                 </section>
 
             </main>
@@ -98,5 +101,5 @@
         <!-- NAV SYSTEM -->
         <script src="common/nav.js" defer></script>
 
-    </body>
+    </body>
 </html>

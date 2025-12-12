@@ -1,102 +1,133 @@
 <?php
-// Include dal file
-require_once "dal/DAL.php";
+session_start();
+require 'conexao.php';
 
-// Define variables and initialize with empty values
-$username = $password = $confirm_password = "";
-$username_err = $password_err = $confirm_password_err = "";
+$error = '';
 
-// Processing form data when form is submitted
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    // Validate username
-    if (empty(trim($_POST["username"]))) {
-        $username_err = "Please enter a username.";
-    } elseif (!preg_match('/^[a-zA-Z0-9_]+$/', trim($_POST["username"]))) {
-        $username_err = "Username can only contain letters, numbers, and underscores.";
+    $name       = trim($_POST['name'] ?? '');
+    $username   = trim($_POST['username'] ?? '');
+    $email      = trim($_POST['email'] ?? '');
+    $dob        = trim($_POST['date_of_birth'] ?? ''); // ✅ coluna real: date_of_birth
+    $password   = (string)($_POST['password'] ?? '');
+
+    // data de registro no formato DATE
+    $dateReg = date('Y-m-d'); // ✅ coluna real: date_of_registration
+
+    if ($name === '' || $username === '' || $email === '' || $password === '') {
+        $error = 'Preencha Name, Username, Email e Password.';
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $error = 'Email inválido.';
     } else {
-        $dal = new DAL();
-        if ($dal->existUser($username) != null) {
-            $username_err = "This username is already taken.";
-        } else {
-            $username = trim($_POST["username"]);
+        // username único
+        $checkU = $pdo->prepare("SELECT 1 FROM user WHERE username = ? LIMIT 1");
+        $checkU->execute([$username]);
+        if ($checkU->fetchColumn()) {
+            $error = 'Esse username já existe.';
         }
-        // Close statement
-        $dal->closeConn();
-    }
 
-    // Validate password
-    if (empty(trim($_POST["password"]))) {
-        $password_err = "Please enter a password.";
-    } elseif (strlen(trim($_POST["password"])) < 6) {
-        $password_err = "Password must have atleast 6 characters.";
-    } else {
-        $password = trim($_POST["password"]);
-    }
+        // email único
+        if ($error === '') {
+            $checkE = $pdo->prepare("SELECT 1 FROM user WHERE email = ? LIMIT 1");
+            $checkE->execute([$email]);
+            if ($checkE->fetchColumn()) {
+                $error = 'Esse email já está em uso.';
+            }
+        }
 
-    // Validate confirm password
-    if (empty(trim($_POST["confirm_password"]))) {
-        $confirm_password_err = "Please confirm password.";
-    } else {
-        $confirm_password = trim($_POST["confirm_password"]);
-        if (empty($password_err) && ($password != $confirm_password)) {
-            $confirm_password_err = "Password did not match.";
+        if ($error === '') {
+            $hash = password_hash($password, PASSWORD_DEFAULT);
+
+            // DOB pode ser NULL se vazio
+            $dobDb = ($dob !== '') ? $dob : null;
+
+            // ✅ INSERT usando os nomes reais das colunas
+            $ins = $pdo->prepare("
+                INSERT INTO user (name, date_of_birth, date_of_registration, email, username, password)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ");
+            $ins->execute([$name, $dobDb, $dateReg, $email, $username, $hash]);
+
+            $newId = (int)$pdo->lastInsertId();
+
+            // ✅ loga automaticamente
+            $_SESSION['loggedin'] = true;
+            $_SESSION['user_id']  = $newId;
+            $_SESSION['name']     = $name;
+            $_SESSION['username'] = $username;
+
+            header("Location: Homepage.login.html");
+            exit;
         }
     }
-
-    // Check input errors before inserting in database
-    if (empty($username_err) && empty($password_err) && empty($confirm_password_err)) {
-        $dal = new DAL();
-        $dal->registerUser($username, $password);
-        // Close connection
-        $dal->closeConn();
-    }
-
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <title>Sign Up</title>
-        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-        <style>
-            body{
-                font: 14px sans-serif;
-            }
-            .wrapper{
-                width: 360px;
-                padding: 20px;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="wrapper">
-            <h2>Sign Up</h2>
-            <p>Please fill this form to create an account.</p>
-            <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post">
-                <div class="form-group">
-                    <label>Username</label>
-                    <input type="text" name="username" class="form-control <?php echo (!empty($username_err)) ? 'is-invalid' : ''; ?>" value="<?php echo $username; ?>">
-                    <span class="invalid-feedback"><?php echo $username_err; ?></span>
-                </div>    
-                <div class="form-group">
-                    <label>Password</label>
-                    <input type="password" name="password" class="form-control <?php echo (!empty($password_err)) ? 'is-invalid' : ''; ?>" value="<?php echo $password; ?>">
-                    <span class="invalid-feedback"><?php echo $password_err; ?></span>
-                </div>
-                <div class="form-group">
-                    <label>Confirm Password</label>
-                    <input type="password" name="confirm_password" class="form-control <?php echo (!empty($confirm_password_err)) ? 'is-invalid' : ''; ?>" value="<?php echo $confirm_password; ?>">
-                    <span class="invalid-feedback"><?php echo $confirm_password_err; ?></span>
-                </div>
-                <div class="form-group">
-                    <input type="submit" class="btn btn-primary" value="Submit">
-                    <input type="reset" class="btn btn-secondary ml-2" value="Reset">
-                </div>
-                <p>Already have an account? <a href="login.php">Login here</a>.</p>
-            </form>
-        </div>    
-    </body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Register</title>
+
+  <!-- CSS que você já tem -->
+  <link rel="stylesheet" href="style2without.css" />
+
+  <style>
+    .auth-wrap{max-width:520px;margin:40px auto;padding:20px;border-radius:16px;background:#fff}
+    .auth-row{margin-bottom:14px}
+    .auth-row label{display:block;font-weight:600;margin-bottom:6px}
+    .auth-row input{width:100%;padding:10px;border-radius:10px;border:1px solid #ddd}
+    .auth-actions{display:flex;gap:12px;margin-top:14px;align-items:center}
+    .auth-actions button{padding:10px 16px;border-radius:10px;border:0;background:#000;color:#fff;font-weight:700;cursor:pointer}
+    .auth-error{color:#b00020;margin-bottom:12px}
+    a{color:#000}
+  </style>
+</head>
+<body>
+
+<div class="auth-wrap">
+  <h2>Create account</h2>
+
+  <?php if ($error): ?>
+    <p class="auth-error"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></p>
+  <?php endif; ?>
+
+  <form method="POST" action="register.php" autocomplete="off">
+
+    <div class="auth-row">
+      <label>Name *</label>
+      <input name="name" required>
+    </div>
+
+    <div class="auth-row">
+      <label>Username *</label>
+      <input name="username" required>
+    </div>
+
+    <div class="auth-row">
+      <label>Email *</label>
+      <input name="email" type="email" required>
+    </div>
+
+    <div class="auth-row">
+      <label>Date of birth</label>
+      <input name="date_of_birth" type="date">
+    </div>
+
+    <div class="auth-row">
+      <label>Password *</label>
+      <input name="password" type="password" required>
+    </div>
+
+    <div class="auth-actions">
+      <button type="submit">Register</button>
+      <a href="login.php">Login</a>
+      <a href="Homepage.logout.html">Back</a>
+    </div>
+
+  </form>
+</div>
+
+</body>
 </html>

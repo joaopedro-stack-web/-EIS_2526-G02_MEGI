@@ -1,37 +1,47 @@
 (function () {
-  const PAGE = document.body.getAttribute('data-page'); // 'collections', 'home', etc.
+  const PAGE = document.body.getAttribute('data-page'); // opcional
 
   // Elements
   const listSection = document.querySelector('#collections-list');
   const titleEl     = listSection?.querySelector('h2');
-  const seeMoreEl   = listSection?.querySelector('.see-more') || listSection?.querySelector('[data-nav="collections"]');
+
+  // "See More" pode ser:
+  // - um <a> dentro da section
+  // - um botão
+  // - um link com data-nav="collections"
+  const seeMoreEl =
+    listSection?.querySelector('.see-more') ||
+    listSection?.querySelector('a.see-more') ||
+    listSection?.querySelector('a[data-nav="collections"]') ||
+    listSection?.querySelector('a[href="#"]') ||
+    null;
+
   const createBtn   = document.querySelector('#create-collection');
   const statsBar    = document.querySelector('#stats');
   const loginInfo   = document.querySelector('#login-info');
 
-  // Seed de dados (fallback se o servidor falhar ou retornar vazio)
+  // Seed (fallback REAL)
   const seedData = [
     { id: 1, title: 'Collection 1', desc: 'Some description about the collection...', img: 'https://picsum.photos/600/400?1' },
     { id: 2, title: 'Collection 2', desc: 'Some description about the collection...', img: 'https://picsum.photos/600/400?2' },
     { id: 3, title: 'Collection 3', desc: 'Some description about the collection...', img: 'https://picsum.photos/600/400?3' },
     { id: 4, title: 'Collection 4', desc: 'Some description about the collection...', img: 'https://picsum.photos/600/400?4' },
     { id: 5, title: 'Collection 5', desc: 'Some description about the collection...', img: 'https://picsum.photos/600/400?5' },
-    { id: 6, title: 'Collection 6', desc: 'Extra to demo See More…',             img: 'https://picsum.photos/600/400?6' },
-    { id: 7, title: 'Collection 7', desc: 'Extra to demo See More…',             img: 'https://picsum.photos/600/400?7' },
+    { id: 6, title: 'Collection 6', desc: 'Extra to demo See More…', img: 'https://picsum.photos/600/400?6' },
+    { id: 7, title: 'Collection 7', desc: 'Extra to demo See More…', img: 'https://picsum.photos/600/400?7' },
   ];
 
-  // Estado agora começa vazio e será preenchido com o que vier do PHP
   const state = {
     collections: [],
     pageSize: 5,
     page: 1,
-    loading: false
+    loading: false,
+    serverLoaded: false
   };
 
   // ---------------- Helpers de UI ----------------
   function clearRendered() {
     if (!listSection) return;
-    // Mantém apenas o <h2> e o link "See More"; remove o resto
     [...listSection.children].forEach(el => {
       if (el !== titleEl && el !== seeMoreEl) listSection.removeChild(el);
     });
@@ -52,14 +62,12 @@
     const p = document.createElement('p');
     p.textContent = desc;
 
-    // Botão Delete (ainda só front-end, não remove do banco)
     const del = document.createElement('button');
     del.className = 'delete-btn';
     del.type = 'button';
     del.title = 'Delete';
     del.textContent = '🗑 Delete';
 
-    // Link "View Collection" (usa o ID do banco)
     const link = document.createElement('a');
     link.href = `collection-page.html?id=${encodeURIComponent(id)}`;
     link.textContent = 'View Collection';
@@ -72,34 +80,55 @@
 
   // ---------------- Integração com PHP ----------------
   function mapBackendCollection(c) {
+    const backendId = c.collection_id ?? c.id ?? c.collectionId ?? null;
+
     return {
-      id: c.collection_id,
-      title: c.name || 'Untitled Collection',
-      desc: c.description || '',
-      img: c.image || `https://picsum.photos/seed/collection-${c.collection_id}/600/400`,
+      id: backendId,
+      title: c.name || c.title || 'Untitled Collection',
+      desc: c.description || c.desc || '',
+      img: c.image || c.img || (backendId
+        ? `https://picsum.photos/seed/collection-${backendId}/600/400`
+        : `https://picsum.photos/seed/collection-${Date.now()}/600/400`)
     };
   }
 
   async function fetchCollectionsFromServer() {
     state.loading = true;
+
     try {
-      // GET collections_api.php
-      // Ideal: collections_api.php usa $_SESSION['user_id' ] para filtrar o usuário logado
-      const res = await fetch('collections_api.php');
+      const res = await fetch('collections_api.php', { credentials: 'same-origin' });
+
+      // Se não estiver logado, backend deve devolver 401
+      if (res.status === 401) {
+        window.location.href = 'Homepage.logout.html';
+        return;
+      }
+
       if (!res.ok) throw new Error('HTTP ' + res.status);
+
       const data = await res.json();
-      if (!data.success) throw new Error(data.error || 'Could not load collections');
+
+      // nosso backend retorna {success:true, collections:[...]}
+      if (!data || data.success !== true) {
+        throw new Error((data && data.error) ? data.error : 'Could not load collections');
+      }
 
       const arr = Array.isArray(data.collections) ? data.collections : [];
-      state.collections = arr.map(mapBackendCollection);
+      const mapped = arr.map(mapBackendCollection).filter(x => x.id != null);
 
-      // Fallback se o servidor retornar vazio
+      state.collections = mapped;
+      state.serverLoaded = true;
+
+      // Se veio vazio, NÃO inventa seed se isso for seu comportamento desejado.
+      // (Se você preferir mostrar seed quando vazio, descomente abaixo)
       if (!state.collections.length) {
-        state.collections = seedData.slice();
+        // state.collections = seedData.slice();
       }
+
     } catch (err) {
       console.error('[home] fetchCollectionsFromServer failed', err);
-      // Fallback completo se falhar
+
+      // fallback só se realmente falhar
       if (!state.collections.length) {
         state.collections = seedData.slice();
       }
@@ -113,8 +142,7 @@
 
     const forceReload = !!options.forceReload;
 
-    // Carrega do servidor se ainda não carregou ou se forceReload = true
-    if (forceReload || !state.collections.length) {
+    if (forceReload || (!state.serverLoaded && !state.collections.length)) {
       await fetchCollectionsFromServer();
     }
 
@@ -124,7 +152,7 @@
     const toShow = state.collections.slice(0, end);
 
     toShow.forEach(item => {
-      listSection.insertBefore(createCard(item), seeMoreEl);
+      listSection.insertBefore(createCard(item), seeMoreEl || null);
     });
 
     if (seeMoreEl) {
@@ -217,39 +245,26 @@
     const formCol = box.querySelector('form');
     const cancelBtn = box.querySelector('[data-role="cancel"]');
 
-    function close() {
-      overlay.remove();
-    }
+    function close() { overlay.remove(); }
 
-    cancelBtn.addEventListener('click', (e) => {
+    cancelBtn.addEventListener('click', (e) => { e.preventDefault(); close(); });
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+
+    formCol.addEventListener('submit', async (e) => {
       e.preventDefault();
-      close();
-    });
 
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) close();
-    });
+      const fd = new FormData(formCol);
+      const name = (fd.get('name') || '').toString().trim();
+      if (!name) { alert('Name is required.'); return; }
 
-    // SUBMIT -> envia para collections_api.php (igual na collection-page)
-    formCol.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const data = new FormData(formCol);
-
-      const name = (data.get('name') || '').toString().trim();
-      if (!name) {
-        alert('Name is required.');
-        return;
-      }
-
-      const type = (data.get('type') || '').toString().trim() || 'Miniatures';
+      const type = (fd.get('type') || '').toString().trim();
       const dateCreated =
-        (data.get('dateCreated') || '').toString() ||
+        (fd.get('dateCreated') || '').toString() ||
         new Date().toISOString().slice(0, 10);
-      const desc = (data.get('desc') || '').toString().trim();
-      const imgInput = (data.get('img') || '').toString().trim();
+      const desc = (fd.get('desc') || '').toString().trim();
+      const imgInput = (fd.get('img') || '').toString().trim();
 
-      const fallbackImg =
-        'https://picsum.photos/seed/collection-' + Date.now() + '/1200/600';
+      const fallbackImg = 'https://picsum.photos/seed/collection-' + Date.now() + '/1200/600';
       const img = imgInput || fallbackImg;
 
       const payload = new FormData();
@@ -260,37 +275,44 @@
       payload.append('description', desc);
       payload.append('image', img);
 
-      fetch('collections_api.php', {
-        method: 'POST',
-        body: payload
-      })
-        .then(res => res.json())
-        .then(result => {
-          if (!result || !result.success) {
-            const msg = result && result.error ? result.error : 'Erro ao criar coleção.';
-            alert(msg);
-            return;
-          }
-
-          close();
-
-          const redirectUrl =
-            result.redirect_url ||
-            `collection-page.html?id=${encodeURIComponent(result.collection_id)}`;
-
-          // Depois de criar, já abre a Collection Page da nova coleção
-          window.location.href = redirectUrl;
-        })
-        .catch(err => {
-          console.error(err);
-          alert('Erro inesperado ao criar coleção.');
+      try {
+        const res = await fetch('collections_api.php', {
+          method: 'POST',
+          body: payload,
+          credentials: 'same-origin'
         });
+
+        if (res.status === 401) {
+          window.location.href = 'Homepage.logout.html';
+          return;
+        }
+
+        const result = await res.json();
+
+        if (!result || !result.success) {
+          alert((result && result.error) ? result.error : 'Erro ao criar coleção.');
+          return;
+        }
+
+        close();
+
+        // ✅ aqui você escolhe: ir pra collection page OU ficar na home e recarregar
+        // 1) ir direto:
+        const redirectUrl = result.redirect_url || `collection-page.html?id=${encodeURIComponent(result.collection_id)}`;
+        window.location.href = redirectUrl;
+
+        // 2) OU recarregar na home (comente o window.location acima e descomente abaixo):
+        // state.page = 1;
+        // await render({ forceReload: true });
+
+      } catch (err) {
+        console.error(err);
+        alert('Erro inesperado ao criar coleção.');
+      }
     });
   }
 
   // --------- Interações ----------
-
-  // Botão "Create New Collection"
   if (createBtn) {
     createBtn.addEventListener('click', (e) => {
       e.preventDefault();
@@ -298,17 +320,24 @@
     });
   }
 
-  // Ver mais (paginação local)
+  // "See More" vira paginação apenas se você quiser.
+  // Se esse link for usado pelo nav.js pra navegar de página, o preventDefault pode atrapalhar.
+  // Aqui eu só pagino se o link for "#" OU tiver a classe .see-more.
   if (seeMoreEl) {
     seeMoreEl.addEventListener('click', (e) => {
-      // se for link <a>, não queremos navegar
+      const isPager =
+        (seeMoreEl.tagName === 'A' && (seeMoreEl.getAttribute('href') === '#' || seeMoreEl.classList.contains('see-more'))) ||
+        seeMoreEl.tagName === 'BUTTON';
+
+      if (!isPager) return; // deixa o nav.js navegar normalmente
+
       if (seeMoreEl.tagName === 'A') e.preventDefault();
       state.page += 1;
       render();
     });
   }
 
-  // Eliminar (apenas front-end, não apaga no banco ainda)
+  // Delete (só front-end)
   if (listSection) {
     listSection.addEventListener('click', (e) => {
       const btn = e.target.closest('.delete-btn');
@@ -352,15 +381,11 @@
     loginInfo.addEventListener('click', (e) => {
       if (e.target.tagName !== 'BUTTON') return;
       const label = e.target.textContent.trim();
-      if (label === 'Config') {
-        alert('Open settings');
-      } else if (label === 'Profile') {
-        alert('Open profile');
-      }
+      if (label === 'Config') alert('Open settings');
+      else if (label === 'Profile') alert('Open profile');
     });
   }
 
-  // Boot: só render em páginas que tenham #collections-list
   async function init() {
     if (PAGE === 'collections' || listSection) {
       await render();
