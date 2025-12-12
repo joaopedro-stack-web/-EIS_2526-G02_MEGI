@@ -22,7 +22,7 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$user) {
     http_response_code(404);
-    echo "Utilizador não encontrado (user_id=" . htmlspecialchars((string) $userId) . ").";
+    echo "User not found. (user_id=" . htmlspecialchars((string) $userId) . ").";
     exit;
 }
 
