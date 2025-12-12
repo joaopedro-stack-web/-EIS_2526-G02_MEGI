@@ -5,14 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Team Page</title>
 
-  <!-- Rotas para o Collecta Navigation Kit -->
   <meta name="app-base" content="">
   <meta name="item-page-path" content="index.html">
   <meta name="events-page-path" content="event.html">
   <meta name="collection-page-path" content="collection-page.html">
   <meta name="collectors-page-path" content="Homepage.login.html">
 <meta name="community-page-path" content="Team_page2.html">
-  <!-- community é resolvido pelo JS (defina este arquivo como community.html OU ajuste ROUTES.community no nav.js) -->
+ 
 
   <link rel="stylesheet" href="css.profile_team/profile_page1.css" />
 </head>
@@ -26,9 +25,12 @@
 
     <!-- Topbar -->
     <header aria-label="Site top bar" class="topbar" role="banner">
-      <div aria-label="Site name" class="topbar__brand">Collecta<span class="topbar__dot">•</span>Hub</div>
+      <a class="topbar__brand" href="Homepage.login.html">
+        Collecta<span class="topbar__dot">•</span>Hub
+      </a>
+
       <div class="topbar__actions">
-<button type="button" class="btn btn--ghost" aria-label="Open profile" onclick="window.location.href='profile_page1.html';">
+<button type="button" class="btn btn--ghost" aria-label="Open profile" onclick="window.location.href='profile_page.php';">
   <!-- user icon -->
   <svg aria-hidden="true" class="icon" role="img" viewBox="0 0 24 24"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-5.33 0-8 2.67-8 6v1h16v-1c0-3.33-2.67-6-8-6Z"></path></svg>
   <span>Profile</span>
@@ -61,7 +63,7 @@
           <img src="imagens.profile_team/Margarida_oliveira.jpg" alt="Foto do utilizador">
           <p><strong>Name:</strong> Margarida Brochado de Oliveira</p>
           <p><strong>E-mail:</strong> up202105775@up.pt</p>
-          <p><strong>Course:</strong> Mechanical Engineering</p>
+          <p><strong>Course:</strong> Enterprise Information Systems</p>
         </div>
 
         <div class="user-card">
@@ -82,7 +84,7 @@
           <img src="imagens.profile_team/Ana_Sophia.jpg" alt="Foto do utilizador">
           <p><strong>Name:</strong> Ana Sophia Angel Alvarez</p>
           <p><strong>E-mail:</strong> up202503128@up.pt</p>
-          <p><strong>Course:</strong> Data Science</p>
+          <p><strong>Course:</strong> Enterprise Information Systems</p>
         </div>
 
         <div class="user-card">
@@ -120,7 +122,7 @@
 
       function openProfile(el) {
         const c = encodeURIComponent(currentCollectionId());
-        window.location.href = 'profile_page1.html?c=' + c;
+        window.location.href = 'profile_page.php?c=' + c;
       }
 
       function openConfig() {
