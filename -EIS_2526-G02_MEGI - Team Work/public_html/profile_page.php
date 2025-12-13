@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once "conexao.php"; // cria $pdo
+require_once "conexao.php"; // cria $pdo (PDO)
 
 // MODO TEMPORÁRIO: simular sessão do utilizador 1 (até o login ficar funcional)
 if (!isset($_SESSION["user_id"])) {
@@ -10,9 +10,127 @@ if (!isset($_SESSION["user_id"])) {
 
 $userId = (int) $_SESSION["user_id"];
 
-// Buscar dados do utilizador
+//Converter caracteres especiais do HTML de forma correta
+function h($value): string
+{
+    return htmlspecialchars((string) $value, ENT_QUOTES, "UTF-8");
+}
+
+// Modo edição via querystring: só é possível editar se edit=1
+$isEdit  = (isset($_GET["edit"]) && $_GET["edit"] === "1");
+$error   = "";
+$success = "";
+
+/**
+ * 1) Handler: Upload de foto de perfil (apenas em modo edição)
+ */
+if (
+    $_SERVER["REQUEST_METHOD"] === "POST"
+    && isset($_POST["action"])
+    && $_POST["action"] === "upload_profile_picture"
+) {
+    if (!$isEdit) {
+        $error = "Enter edit mode to upload profile picture";
+    } elseif (!isset($_FILES["profile_picture"]) || $_FILES["profile_picture"]["error"] !== UPLOAD_ERR_OK) {
+        $error = "Profile picture upload error.";
+    } else {
+        $tmpPath = $_FILES["profile_picture"]["tmp_name"];
+
+        // Validar MIME type
+        $finfo = new finfo(FILEINFO_MIME_TYPE);
+        $mime  = $finfo->file($tmpPath);
+
+        $allowed = [
+            "image/jpeg" => "jpg",
+            "image/png"  => "png",
+            "image/webp" => "webp",
+        ];
+
+        if (!isset($allowed[$mime])) {
+            $error = "Wrong image format. Use JPG, PNG or WEBP.";
+        } else {
+            // Garantir pasta de uploads
+            $uploadDir = __DIR__ . "/uploads/profile_pictures";
+            if (!is_dir($uploadDir)) {
+                @mkdir($uploadDir, 0775, true);
+            }
+
+            if (!is_dir($uploadDir)) {
+                $error = "Error: Could not create upload folder.";
+            } else {
+                $ext     = $allowed[$mime];
+                $newName = "u" . $userId . "_" . bin2hex(random_bytes(2)) . "." . $ext;
+
+                $destPath     = $uploadDir . "/" . $newName;
+                $relativePath = "uploads/profile_pictures/" . $newName;
+
+                if (!move_uploaded_file($tmpPath, $destPath)) {
+                    $error = "Could not save the image in the server.";
+                } else {
+                    $stmtPic = $pdo->prepare("
+                        UPDATE user
+                        SET profile_picture = :p
+                        WHERE user_id = :id
+                    ");
+                    $stmtPic->execute([
+                        ":p"  => $relativePath,
+                        ":id" => $userId,
+                    ]);
+
+                    $success = "Profile picture uploaded.";
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 2) Handler: Update do perfil (apenas em modo edição)
+ */
+if (
+    $_SERVER["REQUEST_METHOD"] === "POST"
+    && isset($_POST["action"])
+    && $_POST["action"] === "update_profile"
+) {
+    if (!$isEdit) {
+        $error = "To edit profile data, enter edit mode.";
+    } else {
+        $name  = trim($_POST["name"] ?? "");
+        $email = trim($_POST["email"] ?? "");
+        $dob   = trim($_POST["date_of_birth"] ?? ""); // YYYY-MM-DD ou vazio
+
+        if ($name === "" || $email === "") {
+            $error = "Name and email required.";
+        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $error = "Invalid email";
+        } elseif ($dob !== "" && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $dob)) {
+            $error = "Invalid date of birth. Use YYYY-MM-DD format.";
+        } else {
+            $stmtUpdate = $pdo->prepare("
+                UPDATE user
+                SET name = :name,
+                    email = :email,
+                    date_of_birth = :dob
+                WHERE user_id = :id
+            ");
+            $stmtUpdate->execute([
+                ":name"  => $name,
+                ":email" => $email,
+                ":dob"   => ($dob === "" ? null : $dob),
+                ":id"    => $userId,
+            ]);
+
+            $success = "Profile data updated.";
+            $isEdit  = false; // volta ao modo leitura após guardar
+        }
+    }
+}
+
+/**
+ * 3) Fetch do utilizador (sempre no fim, para renderizar com dados atuais)
+ */
 $stmt = $pdo->prepare("
-    SELECT user_id, name, username, email, date_of_registration, date_of_birth
+    SELECT user_id, name, username, email, date_of_registration, date_of_birth, profile_picture
     FROM user
     WHERE user_id = :id
     LIMIT 1
@@ -22,20 +140,21 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$user) {
     http_response_code(404);
-    echo "User not found. (user_id=" . htmlspecialchars((string) $userId) . ").";
+    echo "User not found (user_id=" . h($userId) . ").";
     exit;
 }
 
-function h($value)
-{
-    return htmlspecialchars((string) $value, ENT_QUOTES, "UTF-8");
-}
-
 // Mapear campos para a UI
-$profileName  = $user["name"] ?? $user["username"] ?? "";
-$profileEmail = $user["email"] ?? "";
-$profileSince = $user["date_of_registration"] ?? "";
+$profileName        = $user["name"] ?? $user["username"] ?? "";
+$profileEmail       = $user["email"] ?? "";
+$profileSince       = $user["date_of_registration"] ?? "";
 $profileDateOfBirth = $user["date_of_birth"] ?? "";
+
+// FOTO SEMPRE vinda da BD (fallback para default)
+$profilePic = $user["profile_picture"] ?? "";
+if ($profilePic === "") {
+    $profilePic = "imagens.profile_team/pessoa.png";
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -135,30 +254,61 @@ $profileDateOfBirth = $user["date_of_birth"] ?? "";
     <main id="main-content" class="profile">
         <div class="profile-content">
 
+            <!-- LEFT: Profile picture -->
             <div class="profile-left">
+
+                <!-- FOTO sempre da BD -->
                 <img
-                    src="imagens.profile_team/pessoa.png"
+                    src="<?php echo h($profilePic); ?>"
                     alt="Foto do utilizador"
                     class="profile-pic"
                     id="profileImage"
                 >
 
-                <button
-                    type="button"
-                    class="btn btn--primary btn--block"
-                    id="changePhotoBtn"
-                >
-                    Change Profile Picture
-                </button>
+                <?php if ($isEdit): ?>
+                    <!-- Upload só aparece em modo edição -->
+                    <form
+                        method="POST"
+                        action="profile_page.php?edit=1"
+                        enctype="multipart/form-data"
+                        class="profile-pic-form"
+                        style="margin-top: 12px;"
+                    >
+                        <input type="hidden" name="action" value="upload_profile_picture">
 
-                <input
-                    type="file"
-                    id="photoInput"
-                    accept="image/*"
-                    class="sr-only"
-                />
+                        <input
+                            type="file"
+                            id="photoInput"
+                            name="profile_picture"
+                            accept="image/*"
+                            class="sr-only"
+                        />
+
+                        <button
+                            type="button"
+                            class="btn btn--primary btn--block"
+                            id="changePhotoBtn"
+                            onclick="document.getElementById('photoInput').click();"
+                        >
+                            Choose Picture
+                        </button>
+
+                        <button
+                            type="submit"
+                            class="btn btn--secondary btn--block"
+                            style="margin-top: 10px;"
+                        >
+                            Preview
+                        </button>
+                    </form>
+                <?php else: ?>
+                    <!-- Fora do modo edição, não mostra controlos de upload -->
+                    <div style="height: 44px;"></div>
+                <?php endif; ?>
+
             </div>
 
+            <!-- RIGHT: Profile info -->
             <div class="profile-right">
 
                 <div class="profile-header">
@@ -168,34 +318,102 @@ $profileDateOfBirth = $user["date_of_birth"] ?? "";
                         type="button"
                         class="btn btn--secondary"
                         id="editProfileBtn"
+                        onclick="window.location.href='profile_page.php?edit=1';"
                     >
                         Edit Profile
                     </button>
                 </div>
 
-                <div class="info-grid">
+                <?php if ($error !== ""): ?>
+                    <p style="color: red; margin: 0 0 12px 0;"><?php echo h($error); ?></p>
+                <?php endif; ?>
 
-                    <div class="info-box">
-                        <p class="label">Name</p>
-                        <p class="value"><?php echo h($profileName); ?></p>
+                <?php if ($success !== ""): ?>
+                    <p style="color: green; margin: 0 0 12px 0;"><?php echo h($success); ?></p>
+                <?php endif; ?>
+
+                <?php if ($isEdit): ?>
+                    <form method="POST" action="profile_page.php?edit=1" class="profile-edit-form">
+                        <input type="hidden" name="action" value="update_profile">
+
+                        <div class="info-grid">
+
+                            <div class="info-box">
+                                <p class="label">Name</p>
+                                <input
+                                    class="value"
+                                    type="text"
+                                    name="name"
+                                    value="<?php echo h($profileName); ?>"
+                                    required
+                                >
+                            </div>
+
+                            <div class="info-box">
+                                <p class="label">Date of birth</p>
+                                <input
+                                    class="value"
+                                    type="date"
+                                    name="date_of_birth"
+                                    value="<?php echo h($profileDateOfBirth); ?>"
+                                >
+                            </div>
+
+                            <div class="info-box">
+                                <p class="label">Here since</p>
+                                <p class="value"><?php echo h($profileSince); ?></p>
+                            </div>
+
+                            <div class="info-box">
+                                <p class="label">E-mail</p>
+                                <input
+                                    class="value"
+                                    type="email"
+                                    name="email"
+                                    value="<?php echo h($profileEmail); ?>"
+                                    required
+                                >
+                            </div>
+
+                        </div>
+
+                        <div style="margin-top: 16px; display: flex; gap: 8px;">
+                            <button type="submit" class="btn btn--primary">Save</button>
+                            <button
+                                type="button"
+                                class="btn btn--ghost"
+                                onclick="window.location.href='profile_page.php';"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
+                <?php else: ?>
+                    <div class="info-grid">
+
+                        <div class="info-box">
+                            <p class="label">Name</p>
+                            <p class="value"><?php echo h($profileName); ?></p>
+                        </div>
+
+                        <div class="info-box">
+                            <p class="label">Date of birth</p>
+                            <p class="value"><?php echo h($profileDateOfBirth); ?></p>
+                        </div>
+
+                        <div class="info-box">
+                            <p class="label">Here since</p>
+                            <p class="value"><?php echo h($profileSince); ?></p>
+                        </div>
+
+                        <div class="info-box">
+                            <p class="label">E-mail</p>
+                            <p class="value"><?php echo h($profileEmail); ?></p>
+                        </div>
+
                     </div>
+                <?php endif; ?>
 
-                    <div class="info-box">
-                        <p class="label">Date of birth</p>
-                        <p class="value"><?php echo h($profileDateOfBirth); ?></p>
-                    </div>
-
-                    <div class="info-box">
-                        <p class="label">Here since</p>
-                        <p class="value"><?php echo h($profileSince); ?></p>
-                    </div>
-
-                    <div class="info-box">
-                        <p class="label">E-mail</p>
-                        <p class="value"><?php echo h($profileEmail); ?></p>
-                    </div>
-
-                </div>
             </div>
 
         </div>
@@ -210,8 +428,8 @@ $profileDateOfBirth = $user["date_of_birth"] ?? "";
 
 </div>
 
-<script src="js.profile_team/profile_page1.js"></script>
 <script src="common/nav.js" defer></script>
 
 </body>
 </html>
+
