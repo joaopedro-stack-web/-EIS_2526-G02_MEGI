@@ -1,156 +1,395 @@
 document.addEventListener("DOMContentLoaded", () => {
+  "use strict";
 
-    // --------- ELEMENTS ---------
-    const summaryCard = document.getElementById("summaryCard");
-    const editCard = document.getElementById("editCard");
-    const editBtn = document.getElementById("editBtn");
-    const cancelBtn = document.getElementById("cancelBtn");
-    const itemForm = document.getElementById("itemForm");
+  const qs = (s, el = document) => el.querySelector(s);
 
-    const ratingViewStars = document.querySelectorAll("#ratingView .star");
-    const ratingEditStars = document.querySelectorAll("#ratingEdit .star");
-    const ratingValue = document.getElementById("ratingValue");
+  const BUILD_TAG = "ITEM-JS v10 (hero banner hard-fix + fallback sessionStorage)";
+  toast(`✅ ${BUILD_TAG} carregado`, "success");
 
-    // Summary elements
-    const sumName = document.getElementById("sumName");
-    const sumImportance = document.getElementById("sumImportance");
-    const sumWeight = document.getElementById("sumWeight");
-    const sumPrice = document.getElementById("sumPrice");
-    const sumDate = document.getElementById("sumDate");
-
-    // Form fields
-    const fname = document.getElementById("editName");
-    const fimp = document.getElementById("editImportance");
-    const fweight = document.getElementById("editWeight");
-    const fprice = document.getElementById("editPrice");
-    const fdate = document.getElementById("editDate");
-
-// IMAGE UPLOAD PREVIEW
-    const editPhoto = document.getElementById("editPhoto");
-    const itemPhotoPreview = document.getElementById("itemPhotoPreview");
-
-    if (editPhoto) {
-        editPhoto.addEventListener("change", function () {
-            const file = editPhoto.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = () => {
-                    itemPhotoPreview.src = reader.result; // MOSTRA A NOVA IMAGEM
-                };
-                reader.readAsDataURL(file);
-            }
-        });
+  function toast(msg, type = "info") {
+    let root = qs("#__toast_item");
+    if (!root) {
+      root = document.createElement("div");
+      root.id = "__toast_item";
+      Object.assign(root.style, {
+        position: "fixed",
+        right: "16px",
+        bottom: "16px",
+        zIndex: 999999,
+        display: "flex",
+        flexDirection: "column",
+        gap: "8px",
+      });
+      document.body.appendChild(root);
     }
+    const el = document.createElement("div");
+    el.textContent = msg;
+    Object.assign(el.style, {
+      background: type === "error" ? "#B00020" : type === "success" ? "#0B8A83" : "#111",
+      color: "#fff",
+      padding: "10px 14px",
+      borderRadius: "10px",
+      boxShadow: "0 8px 24px rgba(0,0,0,.25)",
+      fontSize: "14px",
+      maxWidth: "520px",
+      whiteSpace: "pre-wrap",
+    });
+    root.appendChild(el);
+    setTimeout(() => {
+      el.style.opacity = "0";
+      el.style.transform = "translateY(6px)";
+      el.style.transition = "all .25s ease";
+      setTimeout(() => el.remove(), 250);
+    }, 4200);
+  }
 
+  function getMeta(name, fallback = "") {
+    return (document.querySelector(`meta[name="${name}"]`)?.getAttribute("content") ?? fallback).toString();
+  }
 
-    // --------- INITIAL DATA ---------
-    let itemData = {
-        name: "Luke Skywalker (1977)",
-        importance: 8,
-        weight: 45,
-        price: 24.99,
-        acquisition: "2021-08-15",
-        rating: 3
+  function resolveAssetUrl(path) {
+    const p0 = String(path || "").trim();
+    if (!p0) return "";
+
+    // já é absoluto
+    if (/^(https?:\/\/|data:|blob:)/i.test(p0)) return p0;
+
+    // normaliza
+    let p = p0.replace(/\\/g, "/").replace(/^\.\/+/, "");
+
+    // se já começa com /, usa direto
+    if (p.startsWith("/")) return p;
+
+    // tenta app-base (se existir)
+    const appBase = getMeta("app-base", "").replace(/\/+$/, "");
+    if (appBase) return `${appBase}/${p.replace(/^\/+/, "")}`;
+
+    // fallback: relativo à pasta atual (public_html/)
+    const baseDir = location.href.replace(/[#?].*$/, "").replace(/\/[^\/]*$/, "/");
+    return baseDir + p.replace(/^\/+/, "");
+  }
+
+  function getParams() {
+    const u = new URL(location.href);
+    return {
+      itemId: u.searchParams.get("id") || "",
+      collectionId: u.searchParams.get("c") || "",
     };
+  }
 
+  async function fetchText(url, opts = {}) {
+    const res = await fetch(url, { cache: "no-store", credentials: "same-origin", ...opts });
+    const text = await res.text();
+    return { res, text };
+  }
 
+  function tryParseJson(text) {
+    try { return JSON.parse(text); } catch { return null; }
+  }
 
-    // --------- SUMMARY UPDATE ---------
-    function updateSummary() {
-        sumName.textContent = itemData.name;
-        sumImportance.textContent = itemData.importance;
-        sumWeight.textContent = itemData.weight;
-        sumPrice.textContent = itemData.price;
-        sumDate.textContent = itemData.acquisition;
+  function pickSuccess(json) {
+    if (!json) return false;
+    return json.success === true || json.success === 1 || json.ok === true || json.status === "ok";
+  }
+
+  function extractError(json, text, res) {
+    return json?.error || json?.message || `HTTP ${res.status}\n\n${text}`;
+  }
+
+  async function apiGetJson(url) {
+    const { res, text } = await fetchText(url);
+    const json = tryParseJson(text);
+    if (!res.ok || !pickSuccess(json)) throw new Error(extractError(json, text, res));
+    return json;
+  }
+
+  async function apiPostJson(url, fd) {
+    const { res, text } = await fetchText(url, { method: "POST", body: fd });
+    const json = tryParseJson(text);
+    if (!res.ok || !pickSuccess(json)) throw new Error(extractError(json, text, res));
+    return json;
+  }
+
+  let ITEMS_ENDPOINT = null;
+  async function detectItemsEndpoint() {
+    if (ITEMS_ENDPOINT) return ITEMS_ENDPOINT;
+    const candidates = ["items_api.php", "Item_api.php", "item_api.php", "./items_api.php", "./Item_api.php"];
+    for (const c of candidates) {
+      try {
+        const { res, text } = await fetchText(`${c}?__probe=1&t=${Date.now()}`);
+        if (res.status !== 404 && text && text.trim().length > 0) {
+          ITEMS_ENDPOINT = c;
+          return ITEMS_ENDPOINT;
+        }
+      } catch (_) {}
     }
+    ITEMS_ENDPOINT = "items_api.php";
+    return ITEMS_ENDPOINT;
+  }
+
+  const COLLECTIONS_ENDPOINT = "collection_api.php";
+
+  // --------- ELEMENTS ----------
+  const summaryCard = qs("#summaryCard");
+  const editCard = qs("#editCard");
+  const editBtn = qs("#editBtn");
+  const cancelBtn = qs("#cancelBtn");
+  const itemForm = qs("#itemForm");
+
+  const ratingViewStars = document.querySelectorAll("#ratingView .star");
+  const ratingEditStars = document.querySelectorAll("#ratingEdit .star");
+  const ratingValue = qs("#ratingValue");
+
+  const sumName = qs("#sumName");
+  const sumImportance = qs("#sumImportance");
+  const sumWeight = qs("#sumWeight");
+  const sumPrice = qs("#sumPrice");
+  const sumDate = qs("#sumDate");
+
+  const fname = qs("#editName");
+  const fimp = qs("#editImportance");
+  const fweight = qs("#editWeight");
+  const fprice = qs("#editPrice");
+  const fdate = qs("#editDate");
+
+  const editPhoto = qs("#editPhoto");
+  const itemPhotoPreview = qs("#itemPhotoPreview");
+
+  // ✅ HERO da coleção na Item Page (essa é a parte do seu print)
+  const heroTitle = qs(".hero__title");
+  const heroSubtitle = qs(".hero__subtitle");
+  const heroImg = qs(".hero__media img");
+
+  const params = getParams();
+
+  let itemData = {
+    item_id: params.itemId || "",
+    name: "",
+    importance: "",
+    weight: "",
+    price: "",
+    date_of_acquisition: "",
+    rating: 0,
+    image: null,
+  };
+
+  function paintStars(stars, v) {
+    const val = parseInt(v || 0, 10);
+    stars.forEach((s, i) => (s.style.color = i < val ? "#FFD700" : "#ccc"));
+  }
+
+  function normalizeItem(apiItem) {
+    return {
+      item_id: apiItem.item_id ?? apiItem.id ?? apiItem.uuid ?? apiItem.itemId ?? "",
+      name: apiItem.name ?? "",
+      importance: apiItem.importance ?? "",
+      weight: apiItem.weight ?? "",
+      price: apiItem.price ?? "",
+      date_of_acquisition: apiItem.date_of_acquisition ?? apiItem.acquisition_date ?? apiItem.acquisition ?? "",
+      rating: apiItem.rating ?? 0,
+      image: apiItem.image ?? null,
+    };
+  }
+
+  function updateSummary() {
+    sumName.textContent = itemData.name || "";
+    sumImportance.textContent = itemData.importance !== "" ? String(itemData.importance) : "";
+    sumWeight.textContent = itemData.weight !== "" ? String(itemData.weight) : "";
+    sumPrice.textContent = itemData.price !== "" ? String(itemData.price) : "";
+    sumDate.textContent = itemData.date_of_acquisition || "";
+    paintStars(ratingViewStars, itemData.rating || 0);
+
+    if (itemData.image) itemPhotoPreview.src = resolveAssetUrl(itemData.image);
+  }
+
+  function openEdit() {
+    summaryCard.style.display = "none";
+    editCard.style.display = "block";
+
+    fname.value = itemData.name || "";
+    fimp.value = itemData.importance ?? "";
+    fweight.value = itemData.weight ?? "";
+    fprice.value = itemData.price ?? "";
+    fdate.value = itemData.date_of_acquisition ?? "";
+
+    ratingValue.value = String(itemData.rating || 0);
+    paintStars(ratingEditStars, itemData.rating || 0);
+  }
+
+  function closeEdit() {
+    editCard.style.display = "none";
+    summaryCard.style.display = "block";
+    paintStars(ratingViewStars, itemData.rating || 0);
+  }
+
+  // ✅ aplica o banner na UI
+  function applyCollectionHero(c) {
+    if (!c) return;
+
+    if (heroTitle) heroTitle.textContent = c.name || heroTitle.textContent || "Collection";
+
+    if (heroSubtitle) {
+      const parts = [];
+      if (c.type) parts.push(c.type);
+      if (c.creation_date) parts.push(c.creation_date);
+      heroSubtitle.textContent = parts.length ? parts.join(" · ") : (c.description || heroSubtitle.textContent || "");
+    }
+
+    if (heroImg) {
+      // se vier imagem, tenta resolver e aplicar
+      if (c.image) {
+        const src1 = resolveAssetUrl(c.image);
+        heroImg.src = src1;
+        heroImg.alt = `${c.name || "Collection"} banner`;
+
+        // fallback automático se der 404
+        heroImg.onerror = () => {
+          // tenta segunda variação: forçar "./"
+          const src2 = resolveAssetUrl("./" + String(c.image).replace(/^\/+/, ""));
+          if (src2 !== heroImg.src) {
+            heroImg.src = src2;
+            return;
+          }
+          // se ainda falhar, mantém o que já tinha no HTML
+        };
+      }
+    }
+  }
+
+  // ✅ tenta buscar da API; se falhar, usa fallback do sessionStorage
+  async function loadCollectionHero() {
+    if (!params.collectionId) return;
+
+    // 1) fallback imediato do sessionStorage (fica instantâneo)
+    try {
+      const raw = sessionStorage.getItem(`collecta_collection_${params.collectionId}`);
+      if (raw) {
+        const cached = JSON.parse(raw);
+        if (cached && typeof cached === "object") applyCollectionHero(cached);
+      }
+    } catch (_) {}
+
+    // 2) tenta API (fonte oficial)
+    try {
+      const json = await apiGetJson(
+        `${COLLECTIONS_ENDPOINT}?id=${encodeURIComponent(params.collectionId)}&t=${Date.now()}`
+      );
+      const c = json.collection || null;
+      if (!c) return;
+
+      // salva cache pro fallback futuro
+      try {
+        sessionStorage.setItem(`collecta_collection_${params.collectionId}`, JSON.stringify(c));
+      } catch (_) {}
+
+      applyCollectionHero(c);
+
+    } catch (e) {
+      console.error(e);
+      // agora você VÊ o motivo (antes ficava silencioso e parecia que "não fez nada")
+      toast("Não consegui carregar banner da coleção.\n" + (e.message || e), "error");
+    }
+  }
+
+  if (editPhoto) {
+    editPhoto.addEventListener("change", () => {
+      const file = editPhoto.files && editPhoto.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => (itemPhotoPreview.src = reader.result);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  ratingEditStars.forEach((star) => {
+    star.addEventListener("mouseover", () => paintStars(ratingEditStars, parseInt(star.dataset.value, 10)));
+    star.addEventListener("mouseout", () => paintStars(ratingEditStars, ratingValue.value));
+    star.addEventListener("click", () => {
+      ratingValue.value = String(parseInt(star.dataset.value, 10) || 0);
+      paintStars(ratingEditStars, ratingValue.value);
+    });
+  });
+
+  async function loadItemFromApi() {
+    if (!params.itemId) {
+      toast("URL sem ?id= — não dá pra carregar item.", "error");
+      updateSummary();
+      return;
+    }
+
+    const endpoint = await detectItemsEndpoint();
+
+    let json = null;
+    try {
+      json = await apiGetJson(`${endpoint}?item_id=${encodeURIComponent(params.itemId)}&t=${Date.now()}`);
+    } catch {
+      json = await apiGetJson(`${endpoint}?id=${encodeURIComponent(params.itemId)}&t=${Date.now()}`);
+    }
+
+    const apiItem = json.item || json.data || json.result || null;
+    if (!apiItem) throw new Error("API retornou success mas não retornou item.");
+
+    itemData = normalizeItem(apiItem);
     updateSummary();
+  }
 
+  editBtn?.addEventListener("click", openEdit);
+  cancelBtn?.addEventListener("click", closeEdit);
 
+  itemForm?.addEventListener("submit", async (e) => {
+    e.preventDefault();
 
-    // --------- RATING VIEW MODE ---------
-    function paintViewRating() {
-        ratingViewStars.forEach((s, i) => {
-            s.style.color = (i < itemData.rating) ? "#FFD700" : "#ccc";
-        });
+    const name = (fname.value || "").trim();
+    const imp = (fimp.value || "").trim();
+    if (!name) return toast("Name é obrigatório.", "error");
+    if (imp === "") return toast("Importance é obrigatório.", "error");
+
+    itemData.name = name;
+    itemData.importance = imp;
+    itemData.weight = (fweight.value || "").trim();
+    itemData.price = (fprice.value || "").trim();
+    itemData.date_of_acquisition = (fdate.value || "").trim();
+    itemData.rating = parseInt(ratingValue.value || "0", 10) || 0;
+
+    const fd = new FormData();
+    fd.append("action", "update");
+    fd.append("item_id", params.itemId);
+    fd.append("id", params.itemId);
+
+    fd.append("name", itemData.name);
+    fd.append("importance", itemData.importance);
+    if (itemData.weight !== "") fd.append("weight", itemData.weight);
+    if (itemData.price !== "") fd.append("price", itemData.price);
+    if (itemData.date_of_acquisition !== "") {
+      fd.append("date_of_acquisition", itemData.date_of_acquisition);
+      fd.append("acquisition_date", itemData.date_of_acquisition);
     }
-    paintViewRating();
+    fd.append("rating", String(itemData.rating));
 
-
-
-    // --------- RATING EDIT MODE (interactive) ---------
-    ratingEditStars.forEach(star => {
-
-        star.addEventListener("mouseover", () => {
-            let val = star.dataset.value;
-            ratingEditStars.forEach((s, i) => {
-                s.style.color = (i < val) ? "#FFD700" : "#ccc";
-            });
-        });
-
-        star.addEventListener("mouseout", () => {
-            paintEditRating();
-        });
-
-        star.addEventListener("click", () => {
-            itemData.rating = parseInt(star.dataset.value);
-            ratingValue.value = itemData.rating;
-            paintEditRating();
-        });
-    });
-
-    function paintEditRating() {
-        ratingEditStars.forEach((s, i) => {
-            s.style.color = (i < itemData.rating) ? "#FFD700" : "#ccc";
-        });
+    if (editPhoto && editPhoto.files && editPhoto.files[0]) {
+      fd.append("image", editPhoto.files[0]);
     }
 
-    // initial paint
-    paintEditRating();
-    ratingValue.value = itemData.rating;
+    try {
+      const endpoint = await detectItemsEndpoint();
+      await apiPostJson(endpoint, fd);
 
+      await loadItemFromApi();
+      closeEdit();
+      toast("Item atualizado.", "success");
+    } catch (err) {
+      console.error(err);
+      toast("Erro ao salvar:\n" + (err.message || err), "error");
+    }
+  });
 
-
-    // --------- EDIT BUTTON ---------
-    editBtn.addEventListener("click", () => {
-        summaryCard.style.display = "none";
-        editCard.style.display = "block";
-
-        fname.value = itemData.name;
-        fimp.value = itemData.importance;
-        fweight.value = itemData.weight;
-        fprice.value = itemData.price;
-        fdate.value = itemData.acquisition;
-
-        paintEditRating();
-    });
-
-
-
-    // --------- CANCEL BUTTON ---------
-    cancelBtn.addEventListener("click", () => {
-        editCard.style.display = "none";
-        summaryCard.style.display = "block";
-        paintViewRating();
-    });
-
-
-
-    // --------- SAVE ---------
-    itemForm.addEventListener("submit", (e) => {
-        e.preventDefault();
-
-        itemData.name = fname.value;
-        itemData.importance = fimp.value;
-        itemData.weight = fweight.value;
-        itemData.price = fprice.value;
-        itemData.acquisition = fdate.value;
-
-        updateSummary();
-        paintViewRating();
-
-        editCard.style.display = "none";
-        summaryCard.style.display = "block";
-        alert("Item updated!");
-    });
-
+  (async () => {
+    try {
+      await loadCollectionHero();  // ✅ essa é a parte do banner que você quer
+      await loadItemFromApi();
+    } catch (e) {
+      console.error(e);
+      toast(String(e.message || e), "error");
+    }
+  })();
 });

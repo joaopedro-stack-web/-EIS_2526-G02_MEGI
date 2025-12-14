@@ -25,7 +25,6 @@
       <button class="new-collection" data-nav="create" type="button">Create New Collection</button>
 
       <!-- Primary navigation (pages) -->
-      <!-- ✅ FIX: hrefs corretos + guard contra nav.js quebrando -->
       <nav class="nav" id="event-sidebar-nav">
         <a class="nav-link"
            data-nav="collector"
@@ -44,7 +43,7 @@
            href="Team_page2.html">Community</a>
       </nav>
 
-      <!-- ✅ Guard: se algum JS interceptar o clique e fizer merda, aqui garante o destino certo -->
+      <!-- Guard: garante destino certo na sidebar sem depender de outros JS -->
       <script>
         (function () {
           function hardFixSidebarLinks() {
@@ -81,7 +80,6 @@
             }, true);
           }
 
-          // roda cedo e de novo depois do nav.js
           hardFixSidebarLinks();
           window.addEventListener('load', hardFixSidebarLinks);
           setTimeout(hardFixSidebarLinks, 0);
@@ -93,7 +91,16 @@
 
     <!-- Top bar with actions -->
     <header class="topmenu" role="banner">
-      <div class="brand">Collecta<span class="brand">•</span>Hub</div>
+      <!-- ✅ Logo clicável sem trocar tag / sem quebrar CSS -->
+      <div class="brand"
+           role="link"
+           tabindex="0"
+           style="cursor:pointer"
+           onclick="window.location.href='Homepage.login.html';"
+           onkeydown="if(event.key==='Enter' || event.key===' '){ event.preventDefault(); window.location.href='Homepage.login.html'; }">
+        Collecta<span class="brand-dot">•</span>Hub
+      </div>
+
       <nav class="actions">
         <button type="button" class="btn btn--ghost" aria-label="Open profile" onclick="window.location.href='profile_page.php';">
           <svg aria-hidden="true" class="icon" role="img" viewBox="0 0 24 24">
@@ -122,25 +129,25 @@
         <form id="event-form" action="events_api.php" method="POST" enctype="multipart/form-data">
           <h3 id="form-title">New event</h3>
 
-          <!--<label>Collection* 
-            <input type="text" id="form-collection" name="collection" required />
-          </label>-->
           <label>Collection*
             <select id="form-collection" name="collection" required>
-                <option value="">-- Select collection --</option>
-    <!-- Lägg till fler collections här, med rätt ID och namn -->
+              <option value="">-- Select collection --</option>
+              <!-- Add more collections here -->
             </select>
           </label>
 
-          <label>Name*       
+          <label>Name*
             <input type="text" id="form-name" name="name" required />
           </label>
-          <label>Location*   
+
+          <label>Location*
             <input type="text" id="form-location" name="location" required />
           </label>
-          <label>Date*       
+
+          <label>Date*
             <input type="date" id="form-date" name="date" required />
           </label>
+
           <label>Description*
             <textarea id="form-desc" name="description" required></textarea>
           </label>
@@ -184,7 +191,7 @@
     </article>
   </dialog>
 
-  <!-- Card template (mantido se quiser reutilizar em outro fluxo, mas o JS cria os cards via DOM) -->
+  <!-- Card template -->
   <template id="events">
     <article class="event-posts">
       <img class="event-picture" src="images/default.jpg" alt="Event image">

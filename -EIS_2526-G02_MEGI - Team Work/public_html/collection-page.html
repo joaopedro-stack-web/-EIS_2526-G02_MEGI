@@ -26,35 +26,44 @@
   <div class="layout">
     <!-- Topbar -->
     <header aria-label="Site top bar" class="topbar" role="banner">
-      <div aria-label="Site name" class="topbar__brand">Collecta<span class="topbar__dot">•</span>Hub</div>
+      <!-- ✅ Logo clicável SEM trocar tag/classe (não quebra CSS) -->
+      <div aria-label="Site name"
+           class="topbar__brand"
+           role="link"
+           tabindex="0"
+           style="cursor:pointer"
+           onclick="window.location.href='Homepage.login.html';"
+           onkeydown="if(event.key==='Enter' || event.key===' '){ event.preventDefault(); window.location.href='Homepage.login.html'; }">
+        Collecta<span class="topbar__dot">•</span>Hub
+      </div>
+
       <div class="topbar__actions">
         <button type="button" class="btn btn--ghost" aria-label="Open profile" onclick="window.location.href='profile_page.php';">
-  <!-- user icon -->
-  <svg aria-hidden="true" class="icon" role="img" viewBox="0 0 24 24"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-5.33 0-8 2.67-8 6v1h16v-1c0-3.33-2.67-6-8-6Z"></path></svg>
-  <span>Profile</span>
-</button>
-
+          <!-- user icon -->
+          <svg aria-hidden="true" class="icon" role="img" viewBox="0 0 24 24"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-5.33 0-8 2.67-8 6v1h16v-1c0-3.33-2.67-6-8-6Z"></path></svg>
+          <span>Profile</span>
+        </button>
       </div>
     </header>
 
     <!-- Sidebar navigation -->
     <aside aria-label="Primary" class="sidebar">
-  <!-- ✅ "Create" button -->
-  <button class="btn btn--primary sidebar__cta" data-nav="create" type="button">
-    <svg aria-hidden="true" class="icon" role="img" viewBox="0 0 24 24"><path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z"></path></svg>
-    <span>Create New Collection</span>
-  </button>
+      <!-- ✅ "Create" button -->
+      <button class="btn btn--primary sidebar__cta" data-nav="create" type="button">
+        <svg aria-hidden="true" class="icon" role="img" viewBox="0 0 24 24"><path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z"></path></svg>
+        <span>Create New Collection</span>
+      </button>
 
-  <!-- ✅ Navigation list -->
-  <nav aria-label="Main navigation" class="sidebar__nav">
-    <ul class="sidebar__list">
-      <li><a class="sidebar__link" data-nav="collector" href="#">Collector</a></li>
-      <li><a class="sidebar__link" data-nav="collections" href="#">Collections</a></li>
-      <li><a class="sidebar__link" data-nav="events"      href="#">Events</a></li>
-      <li><a class="sidebar__link" data-nav="community"   href="#">Community</a></li>
-    </ul>
-  </nav>
-</aside>
+      <!-- ✅ Navigation list -->
+      <nav aria-label="Main navigation" class="sidebar__nav">
+        <ul class="sidebar__list">
+          <li><a class="sidebar__link" data-nav="collector" href="#">Collector</a></li>
+          <li><a class="sidebar__link" data-nav="collections" href="#">Collections</a></li>
+          <li><a class="sidebar__link" data-nav="events"      href="#">Events</a></li>
+          <li><a class="sidebar__link" data-nav="community"   href="#">Community</a></li>
+        </ul>
+      </nav>
+    </aside>
     
     <!-- Main content -->
     <main aria-label="Collection main content" class="main" id="main-content"
@@ -108,10 +117,7 @@
         </div>
       </section>
 
-      <!-- Items grid
-           NOTE: for static cards we already hard-code href and data-href so they behave
-           like items created via JS (deep-link into Index with ?id=...&c=...).
-      -->
+      <!-- Items grid -->
       <section aria-label="Collection items grid" class="grid" data-grid>
         <!-- Card 1 -->
         <article aria-label="Item 1" class="card" data-item-id="item-1" tabindex="0">
@@ -241,242 +247,244 @@
   </div>
 
   <!-- Your collection JS (it will enhance dynamic items and creation flow) -->
-  <script src="js.collection.page/collection-page.js" defer></script>
+  <script src="js.collection.page/collection-page.js?v=3" defer></script>
+
   <script src="common/nav.js?v=2" defer></script>
-<script>
-  // Basic init: navegação já funciona para collector/collections/events/community
-  // e os botões de Profile/Config/Create chamam callbacks default (alert).
-  document.addEventListener('DOMContentLoaded', () => {
-    // Em páginas de item ou eventos, você pode querer ter o botão "← Back to Collection":
-    const isItemOrEvents = /index\.html|event\.html/i.test(location.pathname);
-    window.CollectaNav.init({
-      autoBackButton: isItemOrEvents,
 
-      // Opcional: substitua por comportamentos reais
-      onProfile(el) {
-        // Exemplo: abrir menu drop-down ou navegar para profile.html
-        // window.location.href = 'profile.html';
-        console.log('[nav] Profile clicked', el);
-      },
-      onConfig(el) {
-        // Exemplo: abrir modal de configurações
-        console.log('[nav] Config clicked', el);
-        // openSettingsModal();
-      },
-      onCreate(el) {
-        // Exemplo: abrir wizard de criação de coleção
-        console.log('[nav] Create New Collection clicked', el);
-        // openCreateCollectionWizard();
-      }
-    });
-  });
-</script>
-<script>
-(() => {
-  "use strict";
+  <script>
+    // Basic init: navegação já funciona para collector/collections/events/community
+    // e os botões de Profile/Config/Create chamam callbacks default (alert).
+    document.addEventListener('DOMContentLoaded', () => {
+      // Em páginas de item ou eventos, você pode querer ter o botão "← Back to Collection":
+      const isItemOrEvents = /index\.html|event\.html/i.test(location.pathname);
+      window.CollectaNav.init({
+        autoBackButton: isItemOrEvents,
 
-  // -------- helpers ----------
-  const qs = (s, el=document) => el.querySelector(s);
-  const qsa = (s, el=document) => Array.from(el.querySelectorAll(s));
-  const escapeHTML = (v) => String(v ?? "").replace(/[&<>"']/g, (ch) =>
-    ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[ch])
-  );
-
-  const getMeta = (name, fallback="") =>
-    (document.querySelector(`meta[name="${name}"]`)?.getAttribute("content") ?? fallback).toString();
-
-  const APP_BASE = getMeta("app-base", "").replace(/\/+$/, "");
-  const EVENTS_PAGE_PATH = getMeta("events-page-path", "event.html").replace(/^\/+/, "");
-  const withBase = (p) => (APP_BASE ? `${APP_BASE}/` : "") + p;
-
-  function getCollectionId() {
-    const main = qs("#main-content");
-    const urlParams = new URLSearchParams(location.search);
-    return urlParams.get("id") || main?.dataset?.collectionId || "demo-collection";
-  }
-
-  function buildEventsUrl() {
-    const cid = getCollectionId();
-    return withBase(`${EVENTS_PAGE_PATH}?c=${encodeURIComponent(cid)}`);
-  }
-
-  function toast(msg, type="info") {
-    // mini toast sem depender do seu JS
-    let root = qs("#__patch_toast");
-    if (!root) {
-      root = document.createElement("div");
-      root.id = "__patch_toast";
-      Object.assign(root.style, {
-        position:"fixed", right:"16px", bottom:"16px", zIndex: 100000,
-        display:"flex", flexDirection:"column", gap:"8px"
+        // Opcional: substitua por comportamentos reais
+        onProfile(el) {
+          // Exemplo: abrir menu drop-down ou navegar para profile.html
+          // window.location.href = 'profile.html';
+          console.log('[nav] Profile clicked', el);
+        },
+        onConfig(el) {
+          // Exemplo: abrir modal de configurações
+          console.log('[nav] Config clicked', el);
+          // openSettingsModal();
+        },
+        onCreate(el) {
+          // Exemplo: abrir wizard de criação de coleção
+          console.log('[nav] Create New Collection clicked', el);
+          // openCreateCollectionWizard();
+        }
       });
-      document.body.appendChild(root);
-    }
-    const el = document.createElement("div");
-    el.textContent = msg;
-    Object.assign(el.style, {
-      background: type==="error" ? "#B00020" : type==="success" ? "#0B8A83" : "#333",
-      color:"#fff", padding:"10px 14px", borderRadius:"10px",
-      boxShadow:"0 8px 24px rgba(0,0,0,.2)", fontSize:"14px", maxWidth:"340px"
     });
-    root.appendChild(el);
-    setTimeout(() => {
-      el.style.opacity="0"; el.style.transform="translateY(6px)"; el.style.transition="all .25s ease";
-      setTimeout(() => el.remove(), 250);
-    }, 2200);
-  }
+  </script>
 
-  // -------- core injection ----------
-  const UPLOAD_MARK = "data-event-upload-patched";
+  <script>
+  (() => {
+    "use strict";
 
-  function findCreateEventForm() {
-    // procura o modal do Create Event pelo h2/heading
-    const dialogs = qsa('[role="dialog"][aria-modal="true"]');
-    for (const d of dialogs) {
-      const h2 = qsa("h2", d).find(x => (x.textContent || "").trim().toLowerCase() === "create event");
-      if (!h2) continue;
-      const form = qs("form", d);
-      if (form) return form;
-    }
-    return null;
-  }
+    // -------- helpers ----------
+    const qs = (s, el=document) => el.querySelector(s);
+    const qsa = (s, el=document) => Array.from(el.querySelectorAll(s));
+    const escapeHTML = (v) => String(v ?? "").replace(/[&<>"']/g, (ch) =>
+      ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[ch])
+    );
 
-  function injectUploadUI(form) {
-    if (!form || form.getAttribute(UPLOAD_MARK) === "1") return;
+    const getMeta = (name, fallback="") =>
+      (document.querySelector(`meta[name="${name}"]`)?.getAttribute("content") ?? fallback).toString();
 
-    // acha o textarea (description) pra inserir ANTES dele
-    const textarea = qs('textarea[name="description"]', form) || qs("textarea", form);
-    const holder = document.createElement("div");
-    holder.className = "event-upload";
-    holder.innerHTML = `
-      <div style="margin:8px 0 12px">
-        <label for="__event_image_input" style="display:block;font-weight:600;margin-bottom:6px">
-          Event image (optional)
-        </label>
+    const APP_BASE = getMeta("app-base", "").replace(/\/+$/, "");
+    const EVENTS_PAGE_PATH = getMeta("events-page-path", "event.html").replace(/^\/+/, "");
+    const withBase = (p) => (APP_BASE ? `${APP_BASE}/` : "") + p;
 
-        <input
-          id="__event_image_input"
-          name="image"
-          type="file"
-          accept="image/*"
-          style="display:block !important; width:100% !important; padding:10px !important;
-                 border:1px solid #ddd !important; border-radius:10px !important;
-                 background:#fff !important; opacity:1 !important; visibility:visible !important;
-                 position:static !important; pointer-events:auto !important;"
-        />
-
-        <div id="__event_image_preview_wrap" style="margin-top:10px;display:none">
-          <img
-            id="__event_image_preview"
-            alt="Preview"
-            style="width:100%;max-height:220px;object-fit:cover;border-radius:12px;border:1px solid #ddd;display:block"
-          />
-        </div>
-
-        <small style="display:block;margin-top:6px;opacity:.75">
-          Upload an image from your computer (JPG/PNG/WebP).
-        </small>
-      </div>
-    `;
-
-    if (textarea && textarea.parentNode) {
-      textarea.parentNode.insertBefore(holder, textarea);
-    } else {
-      // fallback: coloca no fim do form
-      form.appendChild(holder);
+    function getCollectionId() {
+      const main = qs("#main-content");
+      const urlParams = new URLSearchParams(location.search);
+      return urlParams.get("id") || main?.dataset?.collectionId || "demo-collection";
     }
 
-    // preview
-    const input = qs("#__event_image_input", form);
-    const prevWrap = qs("#__event_image_preview_wrap", form);
-    const prevImg = qs("#__event_image_preview", form);
-
-    input.addEventListener("change", () => {
-      const file = input.files && input.files[0];
-      if (!file) {
-        prevWrap.style.display = "none";
-        prevImg.removeAttribute("src");
-        return;
-      }
-      prevImg.src = URL.createObjectURL(file);
-      prevWrap.style.display = "block";
-    });
-
-    form.setAttribute(UPLOAD_MARK, "1");
-  }
-
-  // -------- submit override (garante envio com imagem mesmo se o JS antigo ignorar) ----------
-  function attachSubmitOverride(form) {
-    if (!form || form.dataset.submitPatched === "1") return;
-    form.dataset.submitPatched = "1";
-
-    form.addEventListener("submit", async (e) => {
-      // roda em CAPTURE pra ganhar de handlers antigos
-    }, true);
-
-    form.addEventListener("submit", async (e) => {
-      // Intercepta e faz o POST corretamente com FormData + imagem
-      e.preventDefault();
-      e.stopImmediatePropagation();
-
+    function buildEventsUrl() {
       const cid = getCollectionId();
+      return withBase(`${EVENTS_PAGE_PATH}?c=${encodeURIComponent(cid)}`);
+    }
 
-      const name = (qs('input[name="name"]', form)?.value || "").trim();
-      const location = (qs('input[name="location"]', form)?.value || "").trim();
-      const date = (qs('input[name="date"]', form)?.value || "").trim();
-      const description = (qs('textarea[name="description"]', form)?.value || "").trim();
+    function toast(msg, type="info") {
+      // mini toast sem depender do seu JS
+      let root = qs("#__patch_toast");
+      if (!root) {
+        root = document.createElement("div");
+        root.id = "__patch_toast";
+        Object.assign(root.style, {
+          position:"fixed", right:"16px", bottom:"16px", zIndex: 100000,
+          display:"flex", flexDirection:"column", gap:"8px"
+        });
+        document.body.appendChild(root);
+      }
+      const el = document.createElement("div");
+      el.textContent = msg;
+      Object.assign(el.style, {
+        background: type==="error" ? "#B00020" : type==="success" ? "#0B8A83" : "#333",
+        color:"#fff", padding:"10px 14px", borderRadius:"10px",
+        boxShadow:"0 8px 24px rgba(0,0,0,.2)", fontSize:"14px", maxWidth:"340px"
+      });
+      root.appendChild(el);
+      setTimeout(() => {
+        el.style.opacity="0"; el.style.transform="translateY(6px)"; el.style.transition="all .25s ease";
+        setTimeout(() => el.remove(), 250);
+      }, 2200);
+    }
 
-      if (!name || !location || !date) {
-        toast("Fill in Event name, Location and Date.", "error");
-        return;
+    // -------- core injection ----------
+    const UPLOAD_MARK = "data-event-upload-patched";
+
+    function findCreateEventForm() {
+      // procura o modal do Create Event pelo h2/heading
+      const dialogs = qsa('[role="dialog"][aria-modal="true"]');
+      for (const d of dialogs) {
+        const h2 = qsa("h2", d).find(x => (x.textContent || "").trim().toLowerCase() === "create event");
+        if (!h2) continue;
+        const form = qs("form", d);
+        if (form) return form;
+      }
+      return null;
+    }
+
+    function injectUploadUI(form) {
+      if (!form || form.getAttribute(UPLOAD_MARK) === "1") return;
+
+      // acha o textarea (description) pra inserir ANTES dele
+      const textarea = qs('textarea[name="description"]', form) || qs("textarea", form);
+      const holder = document.createElement("div");
+      holder.className = "event-upload";
+      holder.innerHTML = `
+        <div style="margin:8px 0 12px">
+          <label for="__event_image_input" style="display:block;font-weight:600;margin-bottom:6px">
+            Event image (optional)
+          </label>
+
+          <input
+            id="__event_image_input"
+            name="image"
+            type="file"
+            accept="image/*"
+            style="display:block !important; width:100% !important; padding:10px !important;
+                   border:1px solid #ddd !important; border-radius:10px !important;
+                   background:#fff !important; opacity:1 !important; visibility:visible !important;
+                   position:static !important; pointer-events:auto !important;"
+          />
+
+          <div id="__event_image_preview_wrap" style="margin-top:10px;display:none">
+            <img
+              id="__event_image_preview"
+              alt="Preview"
+              style="width:100%;max-height:220px;object-fit:cover;border-radius:12px;border:1px solid #ddd;display:block"
+            />
+          </div>
+
+          <small style="display:block;margin-top:6px;opacity:.75">
+            Upload an image from your computer (JPG/PNG/WebP).
+          </small>
+        </div>
+      `;
+
+      if (textarea && textarea.parentNode) {
+        textarea.parentNode.insertBefore(holder, textarea);
+      } else {
+        // fallback: coloca no fim do form
+        form.appendChild(holder);
       }
 
-      try {
-        const fd = new FormData();
-        fd.append("action", "create");
-        fd.append("collection", cid);
-        fd.append("name", name);
-        fd.append("location", location);
-        fd.append("date", date);
-        fd.append("description", description || `Event related to collection "${cid}".`);
+      // preview
+      const input = qs("#__event_image_input", form);
+      const prevWrap = qs("#__event_image_preview_wrap", form);
+      const prevImg = qs("#__event_image_preview", form);
 
-        const fileInput = qs("#__event_image_input", form) || qs('input[type="file"][name="image"]', form);
-        if (fileInput && fileInput.files && fileInput.files[0]) {
-          fd.append("image", fileInput.files[0]);
+      input.addEventListener("change", () => {
+        const file = input.files && input.files[0];
+        if (!file) {
+          prevWrap.style.display = "none";
+          prevImg.removeAttribute("src");
+          return;
+        }
+        prevImg.src = URL.createObjectURL(file);
+        prevWrap.style.display = "block";
+      });
+
+      form.setAttribute(UPLOAD_MARK, "1");
+    }
+
+    // -------- submit override (garante envio com imagem mesmo se o JS antigo ignorar) ----------
+    function attachSubmitOverride(form) {
+      if (!form || form.dataset.submitPatched === "1") return;
+      form.dataset.submitPatched = "1";
+
+      form.addEventListener("submit", async (e) => {
+        // roda em CAPTURE pra ganhar de handlers antigos
+      }, true);
+
+      form.addEventListener("submit", async (e) => {
+        // Intercepta e faz o POST corretamente com FormData + imagem
+        e.preventDefault();
+        e.stopImmediatePropagation();
+
+        const cid = getCollectionId();
+
+        const name = (qs('input[name="name"]', form)?.value || "").trim();
+        const location = (qs('input[name="location"]', form)?.value || "").trim();
+        const date = (qs('input[name="date"]', form)?.value || "").trim();
+        const description = (qs('textarea[name="description"]', form)?.value || "").trim();
+
+        if (!name || !location || !date) {
+          toast("Fill in Event name, Location and Date.", "error");
+          return;
         }
 
-        const res = await fetch("events_api.php", { method: "POST", body: fd });
-        const json = await res.json().catch(() => ({}));
+        try {
+          const fd = new FormData();
+          fd.append("action", "create");
+          fd.append("collection", cid);
+          fd.append("name", name);
+          fd.append("location", location);
+          fd.append("date", date);
+          fd.append("description", description || `Event related to collection "${cid}".`);
 
-        if (!res.ok || !json.success) {
-          throw new Error(json.error || "Could not create event.");
+          const fileInput = qs("#__event_image_input", form) || qs('input[type="file"][name="image"]', form);
+          if (fileInput && fileInput.files && fileInput.files[0]) {
+            fd.append("image", fileInput.files[0]);
+          }
+
+          const res = await fetch("events_api.php", { method: "POST", body: fd });
+          const json = await res.json().catch(() => ({}));
+
+          if (!res.ok || !json.success) {
+            throw new Error(json.error || "Could not create event.");
+          }
+
+          toast("Event created.", "success");
+          location.href = buildEventsUrl();
+        } catch (err) {
+          console.error(err);
+          toast("Could not create event.", "error");
         }
+      }, true);
+    }
 
-        toast("Event created.", "success");
-        location.href = buildEventsUrl();
-      } catch (err) {
-        console.error(err);
-        toast("Could not create event.", "error");
-      }
-    }, true);
-  }
+    // -------- observer: whenever modal appears, patch it ----------
+    function patchIfNeeded() {
+      const form = findCreateEventForm();
+      if (!form) return;
+      injectUploadUI(form);
+      attachSubmitOverride(form);
+    }
 
-  // -------- observer: whenever modal appears, patch it ----------
-  function patchIfNeeded() {
-    const form = findCreateEventForm();
-    if (!form) return;
-    injectUploadUI(form);
-    attachSubmitOverride(form);
-  }
+    // roda agora e sempre que DOM mudar (modal abre)
+    patchIfNeeded();
+    const mo = new MutationObserver(() => patchIfNeeded());
+    mo.observe(document.body, { childList: true, subtree: true });
 
-  // roda agora e sempre que DOM mudar (modal abre)
-  patchIfNeeded();
-  const mo = new MutationObserver(() => patchIfNeeded());
-  mo.observe(document.body, { childList: true, subtree: true });
-
-})();
-</script>
-
+  })();
+  </script>
 
 </body>
 </html>

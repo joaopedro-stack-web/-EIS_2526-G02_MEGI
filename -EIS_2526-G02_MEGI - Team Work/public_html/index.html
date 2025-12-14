@@ -12,41 +12,29 @@
         <meta name="community-page-path" content="Team_page2.html">
         <!-- só na Item -->
 
-
-
-
         <title>Collecta•Hub — Item Page</title>
 
         <!-- Core stylesheet provided by the project (must be used) -->
         <link rel="stylesheet" href="css.item.page/collection-page.css">
 
-        <!-- Small page-scoped CSS to create the internal two-column grid required by the mockup.
-             This does NOT duplicate or override the main design system; it only composes layout
-             inside the .main area as requested by the brief. -->
         <style>
-            /* Internal grid inside the .main area matching the mockup's two-column division */
             .main-grid {
                 display: grid;
-                grid-template-columns: 360px 1fr; /* left column (photo/rating) + right column (data) */
+                grid-template-columns: 360px 1fr;
                 gap: 20px;
                 align-items: start;
             }
-
-            /* Make grid responsive on narrow screens */
             @media (max-width: 900px) {
                 .main-grid {
                     grid-template-columns: 1fr;
                 }
             }
-
-            /* Visual tweak so the hero text sits above hero media properly */
             .hero {
                 height: 220px;
             }
             .hero__text {
                 top: 60%;
             }
-            /* Keep star size consistent in the rating block */
             .stars {
                 font-size: 26px;
                 letter-spacing: 4px;
@@ -59,11 +47,18 @@
         <div class="layout">
             <!-- TOP BAR -->
             <header class="topbar">
-                <div class="topbar__brand">Collecta<span class="topbar__dot">•</span>Hub</div>
+                <!-- ✅ Logo clicável SEM trocar tag/classe (não quebra CSS) -->
+                <div class="topbar__brand"
+                     role="link"
+                     tabindex="0"
+                     style="cursor:pointer"
+                     onclick="window.location.href='Homepage.login.html';"
+                     onkeydown="if(event.key==='Enter' || event.key===' '){ event.preventDefault(); window.location.href='Homepage.login.html'; }">
+                    Collecta<span class="topbar__dot">•</span>Hub
+                </div>
+
                 <div class="topbar__actions">
-                    <!-- topbar buttons use the inverted style defined in the CSS (white background, black text) -->
                     <button type="button" class="btn btn--ghost" aria-label="Open profile" onclick="window.location.href = 'profile_page.php';">
-                        <!-- user icon -->
                         <svg aria-hidden="true" class="icon" role="img" viewBox="0 0 24 24"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-5.33 0-8 2.67-8 6v1h16v-1c0-3.33-2.67-6-8-6Z"></path></svg>
                         <span>Profile</span>
                     </button>
@@ -72,13 +67,11 @@
 
             <!-- SIDEBAR -->
             <aside aria-label="Primary" class="sidebar">
-                <!-- ✅ "Create" button -->
                 <button class="btn btn--primary sidebar__cta" data-nav="create" type="button">
                     <svg aria-hidden="true" class="icon" role="img" viewBox="0 0 24 24"><path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z"></path></svg>
                     <span>Create New Collection</span>
                 </button>
 
-                <!-- ✅ Navigation list -->
                 <nav aria-label="Main navigation" class="sidebar__nav">
                     <ul class="sidebar__list">
                         <li><a class="sidebar__link" data-nav="collector"   href="#">Collector</a></li>
@@ -89,26 +82,22 @@
                 </nav>
             </aside>
 
-
-            <!-- HERO / BANNER (Título da Coleção e imagem) -->
+            <!-- HERO / BANNER -->
             <section class="hero" aria-hidden="false">
                 <div class="hero__media">
-                    <!-- placeholder image; project can replace with real collection banner -->
                     <img src="assets/collection-hero.jpg" alt="Collection banner">
                 </div>
                 <div class="hero__text">
-                    <h1 class="hero__title">Star Wars Miniatures</h1>
-                    <p class="hero__subtitle">Luke Skywalker — Vintage edition</p>
+                    <h1 class="hero__title">Collection</h1>
+                    <p class="hero__subtitle">Item</p>
                 </div>
             </section>
 
             <main class="main">
-
                 <div class="main-grid">
 
-                    <!-- -------- LEFT CARD: PICTURE + RATING + EDIT BUTTON -------- -->
+                    <!-- LEFT CARD -->
                     <div class="card" style="padding:18px;" id="pictureCard">
-
                         <h2>Picture of the Item</h2>
 
                         <div style="margin:20px 0;">
@@ -118,7 +107,6 @@
                                  id="itemPhotoPreview">
                         </div>
 
-                        <!-- ⭐ VIEW MODE RATING (non-interactive) -->
                         <div class="rating" id="ratingView">
                             <span class="star" data-value="1">★</span>
                             <span class="star" data-value="2">★</span>
@@ -134,9 +122,7 @@
                         </div>
                     </div>
 
-
-
-                    <!-- -------- RIGHT CARD: SUMMARY (VIEW MODE) -------- -->
+                    <!-- SUMMARY CARD -->
                     <div class="card" id="summaryCard" style="padding:18px;">
                         <h2>Item Summary</h2>
 
@@ -149,39 +135,31 @@
                         </table>
                     </div>
 
-
-
-                    <!-- -------- RIGHT CARD: EDIT FORM (HIDDEN INITIALLY) -------- -->
+                    <!-- EDIT CARD -->
                     <div class="card" id="editCard" style="display:none; padding:18px;">
                         <h2>Edit Item</h2>
 
                         <form id="itemForm">
-
-                            <!-- Name -->
                             <div class="field">
                                 <label>Name *</label>
                                 <input type="text" id="editName" required>
                             </div>
 
-                            <!-- Importance -->
                             <div class="field">
                                 <label>Importance (0–10) *</label>
                                 <input type="number" id="editImportance" min="0" max="10" required>
                             </div>
 
-                            <!-- Weight -->
                             <div class="field">
                                 <label>Weight (grams)</label>
                                 <input type="number" id="editWeight">
                             </div>
 
-                            <!-- Price -->
                             <div class="field">
                                 <label>Price (€)</label>
                                 <input type="number" id="editPrice" step="0.01">
                             </div>
 
-                            <!-- Date -->
                             <div class="field">
                                 <label>Date of Acquisition</label>
                                 <input type="date" id="editDate">
@@ -192,7 +170,6 @@
                                 <input type="file" id="editPhoto" accept="image/*">
                             </div>
 
-                            <!-- ⭐ EDIT MODE RATING (INTERACTIVE) -->
                             <label style="margin-top:10px; display:block;">Rating</label>
                             <div class="rating" id="ratingEdit">
                                 <span class="star" data-value="1">★</span>
@@ -203,7 +180,6 @@
                             </div>
                             <input type="hidden" id="ratingValue">
 
-
                             <div class="actions" style="margin-top:16px;">
                                 <button class="btn btn--primary" type="submit">Save</button>
                                 <button class="btn btn--secondary" type="button" id="cancelBtn">Cancel</button>
@@ -212,49 +188,27 @@
                     </div>
 
                 </div>
-
             </main>
 
-
-
-            <!-- FOOTER area -->
             <footer class="footer">
                 <p>© 2025 Collecta•Hub — Team EIS_2526-GXXX</p>
             </footer>
         </div>
 
-        <!-- Attach the JavaScript that implements rating + validation + simulated CRUD -->
-        <script src="js.item.page/Java.js" defer></script>
+        <script src="js.item.page/Java.js?v=3" defer></script>
+
         <script src="common/nav.js" defer></script>
         <script>
-                        // Basic init: navegação já funciona para collector/collections/events/community
-                        // e os botões de Profile/Config/Create chamam callbacks default (alert).
-                        document.addEventListener('DOMContentLoaded', () => {
-                            // Em páginas de item ou eventos, você pode querer ter o botão "← Back to Collection":
-                            const isItemOrEvents = /index\.html|event\.html/i.test(location.pathname);
-                            window.CollectaNav.init({
-                                autoBackButton: isItemOrEvents,
-
-                                // Opcional: substitua por comportamentos reais
-                                onProfile(el) {
-                                    // Exemplo: abrir menu drop-down ou navegar para profile.html
-                                    // window.location.href = 'profile.html';
-                                    console.log('[nav] Profile clicked', el);
-                                },
-                                onConfig(el) {
-                                    // Exemplo: abrir modal de configurações
-                                    console.log('[nav] Config clicked', el);
-                                    // openSettingsModal();
-                                },
-                                onCreate(el) {
-                                    // Exemplo: abrir wizard de criação de coleção
-                                    console.log('[nav] Create New Collection clicked', el);
-                                    // openCreateCollectionWizard();
-                                }
-                            });
-                        });
+            document.addEventListener('DOMContentLoaded', () => {
+                const isItemOrEvents = /index\.html|event\.html/i.test(location.pathname);
+                window.CollectaNav.init({
+                    autoBackButton: isItemOrEvents,
+                    onProfile(el) { console.log('[nav] Profile clicked', el); },
+                    onConfig(el) { console.log('[nav] Config clicked', el); },
+                    onCreate(el) { console.log('[nav] Create New Collection clicked', el); }
+                });
+            });
         </script>
 
     </body>
 </html>
-

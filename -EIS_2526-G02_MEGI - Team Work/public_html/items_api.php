@@ -4,7 +4,7 @@ declare(strict_types=1);
 header('Content-Type: application/json; charset=utf-8');
 session_start();
 
-require 'conexao.php'; // $pdo
+require 'conexao.php'; // $pdo (PDO)
 
 function json_out(array $data, int $code = 200): void {
   http_response_code($code);
@@ -15,12 +15,18 @@ function json_out(array $data, int $code = 200): void {
 $currentUserId = $_SESSION['user_id'] ?? null;
 $requireAuthForGet = true;
 
+/**
+ * Confirma que a collection pertence ao usuário logado.
+ */
 function user_owns_collection(PDO $pdo, int $collectionId, int $userId): bool {
   $stmt = $pdo->prepare("SELECT collection_id FROM collection WHERE collection_id = ? AND user_id = ? LIMIT 1");
   $stmt->execute([$collectionId, $userId]);
   return (bool)$stmt->fetch();
 }
 
+/**
+ * Confirma que o item pertence a uma coleção do usuário logado.
+ */
 function user_owns_item(PDO $pdo, int $itemId, int $userId): bool {
   $stmt = $pdo->prepare("
     SELECT i.item_id
@@ -33,6 +39,9 @@ function user_owns_item(PDO $pdo, int $itemId, int $userId): bool {
   return (bool)$stmt->fetch();
 }
 
+/**
+ * Faz upload opcional da imagem do item.
+ */
 function handle_item_image_upload(): ?string {
   if (empty($_FILES['image']) || !is_array($_FILES['image'])) return null;
 
@@ -65,12 +74,18 @@ function handle_item_image_upload(): ?string {
   return 'uploads/items/' . $fileName;
 }
 
+// =========================
+// POST -> create / update / delete
+// =========================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-  if (!$currentUserId) json_out(['success' => false, 'error' => 'Usuário não autenticado.'], 401);
+  if (!$currentUserId) {
+    json_out(['success' => false, 'error' => 'Usuário não autenticado.'], 401);
+  }
 
   $action = (string)($_POST['action'] ?? '');
 
+  // ---------- CREATE ----------
   if ($action === 'create') {
     $collectionId = (int)($_POST['collection_id'] ?? 0);
     if ($collectionId <= 0) json_out(['success' => false, 'error' => 'collection_id inválido.'], 400);
@@ -85,12 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $importance = isset($_POST['importance']) && $_POST['importance'] !== '' ? (int)$_POST['importance'] : null;
     $weight = isset($_POST['weight']) && $_POST['weight'] !== '' ? (float)$_POST['weight'] : null;
     $price = isset($_POST['price']) && $_POST['price'] !== '' ? (float)$_POST['price'] : null;
-
-    // aceita os dois nomes
-    $date = null;
-    if (isset($_POST['date_of_acquisition']) && $_POST['date_of_acquisition'] !== '') $date = (string)$_POST['date_of_acquisition'];
-    if (isset($_POST['acquisition_date']) && $_POST['acquisition_date'] !== '') $date = (string)$_POST['acquisition_date'];
-
+    $date = isset($_POST['date_of_acquisition']) && $_POST['date_of_acquisition'] !== '' ? (string)$_POST['date_of_acquisition'] : null;
     $description = isset($_POST['description']) && trim((string)$_POST['description']) !== '' ? trim((string)$_POST['description']) : null;
     $rating = isset($_POST['rating']) && $_POST['rating'] !== '' ? (int)$_POST['rating'] : null;
 
@@ -115,12 +125,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
       $newId = (int)$pdo->lastInsertId();
 
+      // opcional: atualizar number_of_items na collection
+      $pdo->prepare("UPDATE collection SET number_of_items = (SELECT COUNT(*) FROM item WHERE collection_id = ?) WHERE collection_id = ?")
+          ->execute([$collectionId, $collectionId]);
+
       json_out(['success' => true, 'item_id' => $newId, 'image' => $imagePath]);
     } catch (Throwable $e) {
       json_out(['success' => false, 'error' => $e->getMessage()], 500);
     }
   }
 
+  // ---------- UPDATE ----------
   if ($action === 'update') {
     $itemId = (int)($_POST['item_id'] ?? 0);
     if ($itemId <= 0) json_out(['success' => false, 'error' => 'item_id inválido.'], 400);
@@ -135,11 +150,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $importance = isset($_POST['importance']) && $_POST['importance'] !== '' ? (int)$_POST['importance'] : null;
     $weight = isset($_POST['weight']) && $_POST['weight'] !== '' ? (float)$_POST['weight'] : null;
     $price = isset($_POST['price']) && $_POST['price'] !== '' ? (float)$_POST['price'] : null;
-
-    $date = null;
-    if (isset($_POST['date_of_acquisition']) && $_POST['date_of_acquisition'] !== '') $date = (string)$_POST['date_of_acquisition'];
-    if (isset($_POST['acquisition_date']) && $_POST['acquisition_date'] !== '') $date = (string)$_POST['acquisition_date'];
-
+    $date = isset($_POST['date_of_acquisition']) && $_POST['date_of_acquisition'] !== '' ? (string)$_POST['date_of_acquisition'] : null;
     $description = isset($_POST['description']) && trim((string)$_POST['description']) !== '' ? trim((string)$_POST['description']) : null;
     $rating = isset($_POST['rating']) && $_POST['rating'] !== '' ? (int)$_POST['rating'] : null;
 
@@ -189,15 +200,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
   }
 
+  // ---------- DELETE ----------
+  if ($action === 'delete') {
+    $itemId = (int)($_POST['item_id'] ?? 0);
+    if ($itemId <= 0) json_out(['success' => false, 'error' => 'item_id inválido.'], 400);
+
+    if (!user_owns_item($pdo, $itemId, (int)$currentUserId)) {
+      json_out(['success' => false, 'error' => 'Sem permissão neste item.'], 403);
+    }
+
+    try {
+      // descobrir collection para recalcular contagem
+      $colStmt = $pdo->prepare("SELECT collection_id FROM item WHERE item_id = ?");
+      $colStmt->execute([$itemId]);
+      $row = $colStmt->fetch();
+      $collectionId = $row ? (int)$row['collection_id'] : 0;
+
+      $pdo->prepare("DELETE FROM item WHERE item_id = ?")->execute([$itemId]);
+
+      if ($collectionId > 0) {
+        $pdo->prepare("UPDATE collection SET number_of_items = (SELECT COUNT(*) FROM item WHERE collection_id = ?) WHERE collection_id = ?")
+            ->execute([$collectionId, $collectionId]);
+      }
+
+      json_out(['success' => true]);
+    } catch (Throwable $e) {
+      json_out(['success' => false, 'error' => $e->getMessage()], 500);
+    }
+  }
+
   json_out(['success' => false, 'error' => 'Ação inválida.'], 400);
 }
 
+// =========================
+// GET -> list by collection_id OR get by item_id
+// =========================
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
   if ($requireAuthForGet && !$currentUserId) {
     json_out(['success' => false, 'error' => 'Usuário não autenticado.'], 401);
   }
 
+  // GET ?item_id=123
   if (isset($_GET['item_id'])) {
     $itemId = (int)$_GET['item_id'];
     if ($itemId <= 0) json_out(['success' => false, 'error' => 'item_id inválido.'], 400);
@@ -206,14 +250,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
       json_out(['success' => false, 'error' => 'Sem permissão neste item.'], 403);
     }
 
-    $stmt = $pdo->prepare("SELECT * FROM item WHERE item_id = ? LIMIT 1");
-    $stmt->execute([$itemId]);
-    $item = $stmt->fetch(PDO::FETCH_ASSOC);
+    try {
+      $stmt = $pdo->prepare("SELECT * FROM item WHERE item_id = ? LIMIT 1");
+      $stmt->execute([$itemId]);
+      $item = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if (!$item) json_out(['success' => false, 'error' => 'Item não encontrado.'], 404);
-    json_out(['success' => true, 'item' => $item]);
+      if (!$item) json_out(['success' => false, 'error' => 'Item não encontrado.'], 404);
+
+      json_out(['success' => true, 'item' => $item]);
+    } catch (Throwable $e) {
+      json_out(['success' => false, 'error' => $e->getMessage()], 500);
+    }
   }
 
+  // GET ?collection_id=4
   if (isset($_GET['collection_id'])) {
     $collectionId = (int)$_GET['collection_id'];
     if ($collectionId <= 0) json_out(['success' => false, 'error' => 'collection_id inválido.'], 400);
@@ -222,14 +272,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
       json_out(['success' => false, 'error' => 'Sem permissão nesta coleção.'], 403);
     }
 
-    $stmt = $pdo->prepare("SELECT * FROM item WHERE collection_id = ? ORDER BY item_id DESC");
-    $stmt->execute([$collectionId]);
-    $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    try {
+      $stmt = $pdo->prepare("
+        SELECT *
+        FROM item
+        WHERE collection_id = ?
+        ORDER BY item_id DESC
+      ");
+      $stmt->execute([$collectionId]);
+      $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    json_out(['success' => true, 'items' => $items]);
+      json_out(['success' => true, 'items' => $items]);
+    } catch (Throwable $e) {
+      json_out(['success' => false, 'error' => $e->getMessage()], 500);
+    }
   }
 
-  json_out(['success' => false, 'error' => 'Use ?collection_id= ou ?item_id=.'], 400);
+  json_out(['success' => false, 'error' => 'Parâmetros inválidos. Use ?collection_id= ou ?item_id=.'], 400);
 }
 
 json_out(['success' => false, 'error' => 'Método não suportado.'], 405);
