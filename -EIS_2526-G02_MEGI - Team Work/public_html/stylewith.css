@@ -419,3 +419,81 @@ footer {
     padding: 12px 4px 20px;
   }
 }
+/* =========================================================
+   PATCH: Delete no canto superior do card (overlay)
+   ========================================================= */
+.collection-item {
+  position: relative; /* base para o botão absoluto */
+}
+
+.collection-item .delete-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  margin: 0;                 /* remove margin antigo */
+  z-index: 5;
+
+  /* mantém seu estilo, só ajusta para ficar "chip" */
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(6px);
+}
+/* =========================================================
+   PATCH: See More como botão (mantém embaixo, não quebra grid)
+   ========================================================= */
+#collections-list > a.see-more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: fit-content;
+  margin: 8px auto 0;        /* centraliza e mantém embaixo */
+  padding: 10px 16px;
+
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: #ffffff;
+  color: var(--primary);
+
+  text-decoration: none;
+  font-weight: 700;
+  cursor: pointer;
+
+  transition: background 0.2s ease, color 0.2s ease, transform 0.1s ease;
+}
+
+#collections-list > a.see-more:hover {
+  background: var(--accent);
+  color: #000;
+  transform: translateY(-1px);
+}
+
+/* =========================================================
+   FIX DEFINITIVO: See More com design (forçado)
+   ========================================================= */
+a.see-more {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  margin: 16px auto 0 !important;
+  padding: 10px 18px !important;
+
+  border-radius: 12px !important;
+  border: 1px solid var(--border) !important;
+  background: #ffffff !important;
+
+  color: var(--primary) !important;
+  font-weight: 700 !important;
+  text-decoration: none !important;
+
+  cursor: pointer !important;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.1s ease !important;
+}
+
+a.see-more:hover {
+  background: var(--accent) !important;
+  color: #000 !important;
+  transform: translateY(-1px) !important;
+}

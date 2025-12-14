@@ -10,7 +10,7 @@ if (!isset($_SESSION["user_id"])) {
 
 $userId = (int) $_SESSION["user_id"];
 
-//Converter caracteres especiais do HTML de forma correta
+// Converter caracteres especiais do HTML de forma correta
 function h($value): string
 {
     return htmlspecialchars((string) $value, ENT_QUOTES, "UTF-8");
@@ -192,15 +192,24 @@ if ($profilePic === "") {
                 aria-label="Open profile"
                 onclick="window.location.href='profile_page.php';"
             >
-                <svg
-                    aria-hidden="true"
-                    class="icon"
-                    role="img"
-                    viewBox="0 0 24 24"
-                >
+                <svg aria-hidden="true" class="icon" role="img" viewBox="0 0 24 24">
                     <path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-5.33 0-8 2.67-8 6v1h16v-1c0-3.33-2.67-6-8-6Z"></path>
                 </svg>
                 <span>Profile</span>
+            </button>
+
+            <!-- ✅ LOGOUT -->
+            <button
+                type="button"
+                class="btn btn--ghost"
+                aria-label="Logout"
+                onclick="window.location.href='logout.php';"
+                title="Logout"
+            >
+                <svg aria-hidden="true" class="icon" role="img" viewBox="0 0 24 24">
+                    <path d="M10 17v-2h4v-6h-4V7l-5 5 5 5Zm9 4H5c-1.1 0-2-.9-2-2V5c0-1.1.9-2 2-2h14c1.1 0 2 .9 2 2v4h-2V5H5v14h14v-4h2v4c0 1.1-.9 2-2 2Z"></path>
+                </svg>
+                <span>Logout</span>
             </button>
         </div>
     </header>
@@ -211,14 +220,9 @@ if ($profilePic === "") {
             type="button"
             class="btn btn--primary sidebar__cta"
             aria-label="Create a new collection"
-            data-nav="create"
+            id="create-collection"
         >
-            <svg
-                aria-hidden="true"
-                class="icon"
-                role="img"
-                viewBox="0 0 24 24"
-            >
+            <svg aria-hidden="true" class="icon" role="img" viewBox="0 0 24 24">
                 <path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z"></path>
             </svg>
             <span>Create New Collection</span>
@@ -226,23 +230,15 @@ if ($profilePic === "") {
 
         <nav class="sidebar__nav" aria-label="Main navigation">
             <ul class="sidebar__list">
+                <li><a class="sidebar__link" href="Homepage.login.html">Collector</a></li>
+
                 <li>
-                    <a class="sidebar__link" href="Homepage.login.html">
-                        Collector..
-                    </a>
-                </li>
-                <li>
-                    <a class="sidebar__link" href="collection-page.html">
-                        Collections
-                    </a>
-                </li>
-                <li>
-                    <a class="sidebar__link" href="event.html">
+                    <a class="sidebar__link" href="event.html" data-nav="events">
                         Events
                     </a>
                 </li>
                 <li>
-                    <a class="sidebar__link" href="team_page2.html">
+                    <a class="sidebar__link" href="team_page2.html" data-nav="community">
                         Community
                     </a>
                 </li>
@@ -257,16 +253,14 @@ if ($profilePic === "") {
             <!-- LEFT: Profile picture -->
             <div class="profile-left">
 
-                <!-- FOTO sempre da BD -->
                 <img
                     src="<?php echo h($profilePic); ?>"
-                    alt="Foto do utilizador"
+                    alt="User picture"
                     class="profile-pic"
                     id="profileImage"
                 >
 
                 <?php if ($isEdit): ?>
-                    <!-- Upload só aparece em modo edição -->
                     <form
                         method="POST"
                         action="profile_page.php?edit=1"
@@ -302,7 +296,6 @@ if ($profilePic === "") {
                         </button>
                     </form>
                 <?php else: ?>
-                    <!-- Fora do modo edição, não mostra controlos de upload -->
                     <div style="height: 44px;"></div>
                 <?php endif; ?>
 
@@ -340,23 +333,12 @@ if ($profilePic === "") {
 
                             <div class="info-box">
                                 <p class="label">Name</p>
-                                <input
-                                    class="value"
-                                    type="text"
-                                    name="name"
-                                    value="<?php echo h($profileName); ?>"
-                                    required
-                                >
+                                <input class="value" type="text" name="name" value="<?php echo h($profileName); ?>" required>
                             </div>
 
                             <div class="info-box">
                                 <p class="label">Date of birth</p>
-                                <input
-                                    class="value"
-                                    type="date"
-                                    name="date_of_birth"
-                                    value="<?php echo h($profileDateOfBirth); ?>"
-                                >
+                                <input class="value" type="date" name="date_of_birth" value="<?php echo h($profileDateOfBirth); ?>">
                             </div>
 
                             <div class="info-box">
@@ -366,24 +348,14 @@ if ($profilePic === "") {
 
                             <div class="info-box">
                                 <p class="label">E-mail</p>
-                                <input
-                                    class="value"
-                                    type="email"
-                                    name="email"
-                                    value="<?php echo h($profileEmail); ?>"
-                                    required
-                                >
+                                <input class="value" type="email" name="email" value="<?php echo h($profileEmail); ?>" required>
                             </div>
 
                         </div>
 
                         <div style="margin-top: 16px; display: flex; gap: 8px;">
                             <button type="submit" class="btn btn--primary">Save</button>
-                            <button
-                                type="button"
-                                class="btn btn--ghost"
-                                onclick="window.location.href='profile_page.php';"
-                            >
+                            <button type="button" class="btn btn--ghost" onclick="window.location.href='profile_page.php';">
                                 Cancel
                             </button>
                         </div>
@@ -406,9 +378,11 @@ if ($profilePic === "") {
                             <p class="value"><?php echo h($profileSince); ?></p>
                         </div>
 
-                        <div class="info-box">
+                        <div class="info-box email-box">
                             <p class="label">E-mail</p>
-                            <p class="value"><?php echo h($profileEmail); ?></p>
+                            <p class="value email-ellipsis" title="<?php echo h($profileEmail); ?>">
+                                <?php echo h($profileEmail); ?>
+                            </p>
                         </div>
 
                     </div>
@@ -421,9 +395,7 @@ if ($profilePic === "") {
 
     <!-- FOOTER -->
     <footer class="footer">
-        <small>
-            © 2025 Collecta•Hub — Team EIS_2526-G02-MEGI
-        </small>
+        <small>© 2025 Collecta•Hub — Team EIS_2526-G02-MEGI</small>
     </footer>
 
 </div>
@@ -432,4 +404,3 @@ if ($profilePic === "") {
 
 </body>
 </html>
-

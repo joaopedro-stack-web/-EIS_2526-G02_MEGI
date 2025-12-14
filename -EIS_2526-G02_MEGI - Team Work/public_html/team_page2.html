@@ -10,17 +10,14 @@
   <meta name="events-page-path" content="event.html">
   <meta name="collection-page-path" content="collection-page.html">
   <meta name="collectors-page-path" content="Homepage.login.html">
-<meta name="community-page-path" content="Team_page2.html">
- 
+  <meta name="community-page-path" content="Team_page2.html">
 
   <link rel="stylesheet" href="css.profile_team/profile_page1.css" />
 </head>
 <body>
 
-  <!-- Accessibility link to skip to main content -->
   <a href="#main-content" class="skip-link">Skip to main content</a>
 
-  <!-- LAYOUT -->
   <div class="layout">
 
     <!-- Topbar -->
@@ -30,33 +27,69 @@
       </a>
 
       <div class="topbar__actions">
-<button type="button" class="btn btn--ghost" aria-label="Open profile" onclick="window.location.href='profile_page.php';">
-  <!-- user icon -->
-  <svg aria-hidden="true" class="icon" role="img" viewBox="0 0 24 24"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-5.33 0-8 2.67-8 6v1h16v-1c0-3.33-2.67-6-8-6Z"></path></svg>
-  <span>Profile</span>
-</button>
+        <!-- ✅ Profile -->
+        <button
+          type="button"
+          class="btn btn--ghost"
+          aria-label="Open profile"
+          onclick="window.location.href='profile_page.php';"
+        >
+          <svg aria-hidden="true" class="icon" role="img" viewBox="0 0 24 24">
+            <path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-5.33 0-8 2.67-8 6v1h16v-1c0-3.33-2.67-6-8-6Z"></path>
+          </svg>
+          <span>Profile</span>
+        </button>
+
+        <!-- ✅ Logout -->
+        <button
+          type="button"
+          class="btn btn--ghost"
+          aria-label="Logout"
+          title="Logout"
+          onclick="window.location.href='logout.php';"
+        >
+          <svg aria-hidden="true" class="icon" role="img" viewBox="0 0 24 24">
+            <path d="M10 17v-2h4v-6h-4V7l-5 5 5 5Zm9 4H5c-1.1 0-2-.9-2-2V5c0-1.1.9-2 2-2h14c1.1 0 2 .9 2 2v4h-2V5H5v14h14v-4h2v4c0 1.1-.9 2-2 2Z"></path>
+          </svg>
+          <span>Logout</span>
+        </button>
       </div>
     </header>
 
-    <!-- Sidebar navigation -->
+    <!-- Sidebar -->
     <aside aria-label="Primary" class="sidebar">
-      <button aria-label="Create a new collection" class="btn btn--primary sidebar__cta" type="button" data-nav="create">
-        <!-- plus icon -->
-        <svg aria-hidden="true" class="icon" role="img" viewBox="0 0 24 24"><path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z"/></svg>
+      <!-- Create: SEM data-nav para não conflitar com nav.js -->
+      <button aria-label="Create a new collection" class="btn btn--primary sidebar__cta" type="button" id="create-collection">
+        <svg aria-hidden="true" class="icon" role="img" viewBox="0 0 24 24">
+          <path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z"></path>
+        </svg>
         <span>Create New Collection</span>
       </button>
 
       <nav aria-label="Main navigation" class="sidebar__nav">
         <ul class="sidebar__list">
-          <li><a aria-label="Go to Collector"   class="sidebar__link" href="#" data-nav="collector">Collector</a></li>
-          <li><a aria-label="Go to Collections" class="sidebar__link" href="#" data-nav="collections">Collections</a></li>
-          <li><a aria-label="Go to Events"      class="sidebar__link" href="#" data-nav="events">Events</a></li>
-          <li><a aria-current="page" aria-label="Current page Community" class="sidebar__link" href="#" data-nav="community">Community</a></li>
+          <li>
+            <a aria-label="Go to Collector" class="sidebar__link" href="Homepage.login.html">
+              Collector
+            </a>
+          </li>
+
+          <li>
+            <a aria-label="Go to Events" class="sidebar__link" href="event.html">
+              Events
+            </a>
+          </li>
+
+          <li>
+            <a aria-current="page" aria-label="Current page Community" class="sidebar__link" href="Team_page2.html">
+              Community
+            </a>
+          </li>
         </ul>
       </nav>
     </aside>
 
-    <!-- MAIN CONTENT -->
+    <!-- MAIN -->
     <main id="main-content" class="collections" data-collection-id="default-collection">
       <div class="card-grid">
         <div class="user-card">
@@ -109,41 +142,190 @@
     <small>&copy; 2025 TeamWork Portal – All rights reserved.</small>
   </footer>
 
-  <!-- Collecta Navigation Kit -->
-  <script src="common/nav.js"></script>
+  <!-- nav.js só 1 vez -->
+  <script src="common/nav.js" defer></script>
+
+  <!-- ✅ Create Collection Modal (MESMO DO ZIP) + anti-conflito -->
   <script>
     (function () {
-      function currentCollectionId() {
-        const qs = new URLSearchParams(location.search);
-        return qs.get('c')
-          || (document.querySelector('[data-collection-id]')?.dataset.collectionId)
-          || 'default-collection';
+      "use strict";
+
+      const qs = (s, el=document) => el.querySelector(s);
+
+      async function fetchText(url, opts = {}) {
+        const res = await fetch(url, { credentials: "same-origin", cache: "no-store", ...opts });
+        const text = await res.text();
+        return { res, text };
+      }
+      function tryJson(t){ try { return JSON.parse(t); } catch { return null; } }
+
+      async function apiPostForm(url, fd) {
+        const { res, text } = await fetchText(url, { method: "POST", body: fd });
+        const json = tryJson(text);
+        if (!res.ok || !json || json.success !== true) {
+          throw new Error((json && (json.error || json.message)) || `HTTP ${res.status}\n\n${text}`);
+        }
+        return json;
       }
 
-      function openProfile(el) {
-        const c = encodeURIComponent(currentCollectionId());
-        window.location.href = 'profile_page.php?c=' + c;
+      function ensureCreateCollectionModal() {
+        let dlg = qs("#__create_collection_modal");
+        if (dlg) return dlg;
+
+        dlg = document.createElement("dialog");
+        dlg.id = "__create_collection_modal";
+        dlg.setAttribute("aria-label", "Create New Collection");
+        Object.assign(dlg.style, {
+          width: "min(640px, 92vw)",
+          border: "1px solid rgba(0,0,0,.15)",
+          borderRadius: "16px",
+          padding: "0",
+        });
+
+        dlg.innerHTML = `
+          <form id="__cc_form" method="dialog" enctype="multipart/form-data" style="padding:18px 18px 16px">
+            <h3 style="margin:0 0 14px">Create New Collection</h3>
+
+            <div style="display:grid; gap:10px">
+              <label style="display:grid; gap:6px">
+                <span style="font-weight:600">Name *</span>
+                <input id="__cc_name" name="name" required type="text"
+                       style="padding:10px;border:1px solid #ddd;border-radius:10px">
+              </label>
+
+              <label style="display:grid; gap:6px">
+                <span style="font-weight:600">Type</span>
+                <input id="__cc_type" name="type" type="text" placeholder="Miniatures, Cards..."
+                       style="padding:10px;border:1px solid #ddd;border-radius:10px">
+              </label>
+
+              <label style="display:grid; gap:6px">
+                <span style="font-weight:600">Creation date</span>
+                <input id="__cc_date" name="creation_date" type="date"
+                       style="padding:10px;border:1px solid #ddd;border-radius:10px">
+              </label>
+
+              <label style="display:grid; gap:6px">
+                <span style="font-weight:600">Description</span>
+                <textarea id="__cc_desc" name="description" rows="3"
+                          style="padding:10px;border:1px solid #ddd;border-radius:10px;resize:vertical"></textarea>
+              </label>
+
+              <label style="display:grid; gap:6px">
+                <span style="font-weight:600">Banner image (optional)</span>
+                <input id="__cc_image" name="image" type="file" accept="image/*"
+                       style="padding:10px;border:1px solid #ddd;border-radius:10px;background:#fff">
+              </label>
+
+              <div id="__cc_preview_wrap" style="display:none;margin-top:4px">
+                <img id="__cc_preview" alt="Preview"
+                     style="width:100%;max-height:220px;object-fit:cover;border-radius:12px;border:1px solid #ddd">
+              </div>
+
+              <p id="__cc_error" style="margin:6px 0 0;color:#B00020;font-weight:600"></p>
+            </div>
+
+            <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:14px">
+              <button type="button" id="__cc_cancel"
+                      style="padding:10px 14px;border-radius:10px;border:1px solid #ddd;background:#fff;cursor:pointer">
+                Cancel
+              </button>
+              <button type="submit" id="__cc_save"
+                      style="padding:10px 14px;border-radius:10px;border:0;background:#111;color:#fff;cursor:pointer">
+                Create
+              </button>
+            </div>
+          </form>
+        `;
+
+        document.body.appendChild(dlg);
+
+        const dateInput = qs("#__cc_date", dlg);
+        if (dateInput && !dateInput.value) dateInput.value = new Date().toISOString().slice(0, 10);
+
+        const file = qs("#__cc_image", dlg);
+        const prevWrap = qs("#__cc_preview_wrap", dlg);
+        const prevImg = qs("#__cc_preview", dlg);
+
+        file.addEventListener("change", () => {
+          const f = file.files && file.files[0];
+          if (!f) {
+            prevWrap.style.display = "none";
+            prevImg.removeAttribute("src");
+            return;
+          }
+          prevImg.src = URL.createObjectURL(f);
+          prevWrap.style.display = "block";
+        });
+
+        qs("#__cc_cancel", dlg).addEventListener("click", () => dlg.close());
+        return dlg;
       }
 
-      function openConfig() {
-        alert('Abrir configurações (substitua por seu modal/rota).');
+      async function createCollectionFromModal() {
+        const dlg = ensureCreateCollectionModal();
+        const errEl = qs("#__cc_error", dlg);
+        errEl.textContent = "";
+
+        const name = (qs("#__cc_name", dlg).value || "").trim();
+        const type = (qs("#__cc_type", dlg).value || "").trim();
+        const date = (qs("#__cc_date", dlg).value || "").trim();
+        const desc = (qs("#__cc_desc", dlg).value || "").trim();
+
+        if (!name) { errEl.textContent = "Name is required."; return; }
+
+        try {
+          const fd = new FormData();
+          fd.append("action", "create");
+          fd.append("name", name);
+          fd.append("type", type);
+          fd.append("creation_date", date || new Date().toISOString().slice(0, 10));
+          fd.append("description", desc);
+
+          const img = qs("#__cc_image", dlg);
+          if (img && img.files && img.files[0]) fd.append("image", img.files[0]);
+
+          const json = await apiPostForm("collections_api.php", fd);
+
+          const created = json.collection || json;
+          const newId = created.collection_id ?? json.collection_id ?? created.id ?? null;
+          if (!newId) throw new Error("API did not return collection_id.");
+
+          dlg.close();
+          window.location.href = "collection-page.html?id=" + encodeURIComponent(newId);
+        } catch (e) {
+          console.error(e);
+          errEl.textContent = String(e.message || e);
+        }
       }
 
-      function openCreate() {
-        alert('Criar nova coleção (substitua pelo seu fluxo).');
+      function openCreateCollectionModal() {
+        const dlg = ensureCreateCollectionModal();
+        const form = qs("#__cc_form", dlg);
+
+        if (!form.dataset.bound) {
+          form.dataset.bound = "1";
+          form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            await createCollectionFromModal();
+          });
+        }
+
+        dlg.showModal();
       }
 
-      window.CollectaNav && window.CollectaNav.init({
-        onProfile: openProfile,
-        onConfig: openConfig,
-        onCreate: openCreate
+      document.addEventListener("DOMContentLoaded", () => {
+        const btn = document.getElementById("create-collection");
+        if (!btn) return;
+
+        btn.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+          openCreateCollectionModal();
+        }, true);
       });
     })();
   </script>
-
-  <!-- JS específico desta página -->
-  <script src="js.profile_team/profile_page1.js"></script>
- <script src="common/nav.js" defer></script>
-
 </body>
 </html>

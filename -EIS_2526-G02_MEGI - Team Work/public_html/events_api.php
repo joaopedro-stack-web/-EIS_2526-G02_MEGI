@@ -4,232 +4,191 @@ declare(strict_types=1);
 header('Content-Type: application/json; charset=utf-8');
 session_start();
 
-require 'conexao.php'; // $pdo
+require 'conexao.php';
+require 'EventDAL.php';
 
-function json_out(array $data, int $code = 200): void {
-  http_response_code($code);
-  echo json_encode($data, JSON_UNESCAPED_UNICODE);
-  exit;
-}
-
+$eventDal = new EventDAL($pdo);
 $currentUserId = $_SESSION['user_id'] ?? null;
-$requireAuthForGet = true;
 
-function user_owns_collection(PDO $pdo, int $collectionId, int $userId): bool {
-  $stmt = $pdo->prepare("SELECT collection_id FROM collection WHERE collection_id = ? AND user_id = ? LIMIT 1");
-  $stmt->execute([$collectionId, $userId]);
-  return (bool)$stmt->fetch();
+/**
+ * Outputs JSON and exits.
+ */
+function json_out(array $data, int $code = 200): void {
+    http_response_code($code);
+    echo json_encode($data, JSON_UNESCAPED_UNICODE);
+    exit;
 }
 
-function user_owns_item(PDO $pdo, int $itemId, int $userId): bool {
-  $stmt = $pdo->prepare("
-    SELECT i.item_id
-    FROM item i
-    JOIN collection c ON c.collection_id = i.collection_id
-    WHERE i.item_id = ? AND c.user_id = ?
-    LIMIT 1
-  ");
-  $stmt->execute([$itemId, $userId]);
-  return (bool)$stmt->fetch();
-}
-
-function handle_item_image_upload(): ?string {
-  if (empty($_FILES['image']) || !is_array($_FILES['image'])) return null;
-
-  $err = $_FILES['image']['error'] ?? UPLOAD_ERR_NO_FILE;
-  if ($err === UPLOAD_ERR_NO_FILE) return null;
-  if ($err !== UPLOAD_ERR_OK) json_out(['success' => false, 'error' => 'Erro no upload da imagem.'], 400);
-
-  $originalName = (string)($_FILES['image']['name'] ?? '');
-  $ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
-  $allowed = ['jpg', 'jpeg', 'png', 'webp'];
-
-  if (!in_array($ext, $allowed, true)) {
-    json_out(['success' => false, 'error' => 'Formato inválido. Use JPG/PNG/WEBP.'], 400);
-  }
-
-  $uploadDir = __DIR__ . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR . 'items' . DIRECTORY_SEPARATOR;
-  if (!is_dir($uploadDir)) {
-    if (!mkdir($uploadDir, 0777, true) && !is_dir($uploadDir)) {
-      json_out(['success' => false, 'error' => 'Não foi possível criar a pasta de uploads.'], 500);
+/**
+ * Safely saves an uploaded image file and returns the saved path (relative).
+ *
+ * English notes:
+ * - This stores files under /uploads/
+ * - It validates basic "is image" + extension
+ * - DB stores only the relative path (varchar)
+ */
+function handle_image_upload(string $fieldName = 'image'): ?string {
+    if (empty($_FILES[$fieldName]) || empty($_FILES[$fieldName]['name'])) {
+        return null;
     }
-  }
 
-  $fileName = uniqid('item_', true) . '.' . $ext;
-  $destAbs = $uploadDir . $fileName;
+    if (!isset($_FILES[$fieldName]['tmp_name']) || !is_uploaded_file($_FILES[$fieldName]['tmp_name'])) {
+        return null;
+    }
 
-  if (!move_uploaded_file($_FILES['image']['tmp_name'], $destAbs)) {
-    json_out(['success' => false, 'error' => 'Falha ao salvar a imagem no servidor.'], 500);
-  }
+    $tmp  = $_FILES[$fieldName]['tmp_name'];
+    $name = $_FILES[$fieldName]['name'];
 
-  return 'uploads/items/' . $fileName;
+    // Basic MIME validation
+    $info = @getimagesize($tmp);
+    if ($info === false) {
+        return null; // Not an image
+    }
+
+    $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+    $allowed = ['jpg','jpeg','png','gif','webp'];
+    if (!in_array($ext, $allowed, true)) {
+        return null;
+    }
+
+    $uploadDir = __DIR__ . DIRECTORY_SEPARATOR . 'uploads';
+    if (!is_dir($uploadDir)) {
+        mkdir($uploadDir, 0777, true);
+    }
+
+    // Unique filename
+    $safeBase = preg_replace('/[^a-zA-Z0-9_\-\.]/', '_', basename($name));
+    $fileName = time() . '_' . $safeBase;
+
+    $targetAbs = $uploadDir . DIRECTORY_SEPARATOR . $fileName;
+    $targetRel = 'uploads/' . $fileName;
+
+    if (!move_uploaded_file($tmp, $targetAbs)) {
+        return null;
+    }
+
+    return $targetRel;
 }
 
+/**
+ * POST: action=create|update|delete|rate
+ * GET:  list events
+ */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-  if (!$currentUserId) json_out(['success' => false, 'error' => 'Usuário não autenticado.'], 401);
-
-  $action = (string)($_POST['action'] ?? '');
-
-  if ($action === 'create') {
-    $collectionId = (int)($_POST['collection_id'] ?? 0);
-    if ($collectionId <= 0) json_out(['success' => false, 'error' => 'collection_id inválido.'], 400);
-
-    if (!user_owns_collection($pdo, $collectionId, (int)$currentUserId)) {
-      json_out(['success' => false, 'error' => 'Sem permissão nesta coleção.'], 403);
+    // Auth required for all POST actions
+    if (!$currentUserId) {
+        json_out(['success' => false, 'error' => 'Not authenticated.'], 401);
     }
 
-    $name = trim((string)($_POST['name'] ?? ''));
-    if ($name === '') json_out(['success' => false, 'error' => 'O campo "name" é obrigatório.'], 400);
+    $action = $_POST['action'] ?? 'create';
 
-    $importance = isset($_POST['importance']) && $_POST['importance'] !== '' ? (int)$_POST['importance'] : null;
-    $weight = isset($_POST['weight']) && $_POST['weight'] !== '' ? (float)$_POST['weight'] : null;
-    $price = isset($_POST['price']) && $_POST['price'] !== '' ? (float)$_POST['price'] : null;
+    // =========================
+    // DELETE
+    // =========================
+    if ($action === 'delete') {
+        $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
+        if ($id <= 0) {
+            json_out(['success' => false, 'error' => 'Missing or invalid event ID'], 400);
+        }
 
-    // aceita os dois nomes
-    $date = null;
-    if (isset($_POST['date_of_acquisition']) && $_POST['date_of_acquisition'] !== '') $date = (string)$_POST['date_of_acquisition'];
-    if (isset($_POST['acquisition_date']) && $_POST['acquisition_date'] !== '') $date = (string)$_POST['acquisition_date'];
+        // Owner check
+        $ownerId = $eventDal->getEventOwnerId($id);
+        if ($ownerId === null || $ownerId !== (int)$currentUserId) {
+            json_out(['success' => false, 'error' => 'Permission denied. You are not the owner of this event.'], 403);
+        }
 
-    $description = isset($_POST['description']) && trim((string)$_POST['description']) !== '' ? trim((string)$_POST['description']) : null;
-    $rating = isset($_POST['rating']) && $_POST['rating'] !== '' ? (int)$_POST['rating'] : null;
-
-    $imagePath = handle_item_image_upload();
-
-    try {
-      $stmt = $pdo->prepare("
-        INSERT INTO item (collection_id, name, importance, weight, price, date_of_acquisition, description, rating, image)
-        VALUES (:collection_id, :name, :importance, :weight, :price, :date_of_acquisition, :description, :rating, :image)
-      ");
-      $stmt->execute([
-        ':collection_id' => $collectionId,
-        ':name' => $name,
-        ':importance' => $importance,
-        ':weight' => $weight,
-        ':price' => $price,
-        ':date_of_acquisition' => $date,
-        ':description' => $description,
-        ':rating' => $rating,
-        ':image' => $imagePath,
-      ]);
-
-      $newId = (int)$pdo->lastInsertId();
-
-      json_out(['success' => true, 'item_id' => $newId, 'image' => $imagePath]);
-    } catch (Throwable $e) {
-      json_out(['success' => false, 'error' => $e->getMessage()], 500);
-    }
-  }
-
-  if ($action === 'update') {
-    $itemId = (int)($_POST['item_id'] ?? 0);
-    if ($itemId <= 0) json_out(['success' => false, 'error' => 'item_id inválido.'], 400);
-
-    if (!user_owns_item($pdo, $itemId, (int)$currentUserId)) {
-      json_out(['success' => false, 'error' => 'Sem permissão neste item.'], 403);
+        $eventDal->deleteEvent($id);
+        json_out(['success' => true]);
     }
 
-    $name = trim((string)($_POST['name'] ?? ''));
-    if ($name === '') json_out(['success' => false, 'error' => 'O campo "name" é obrigatório.'], 400);
+    // =========================
+    // RATE
+    // =========================
+    if ($action === 'rate') {
+        $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
+        $rating = isset($_POST['rating']) ? (int)$_POST['rating'] : 0;
 
-    $importance = isset($_POST['importance']) && $_POST['importance'] !== '' ? (int)$_POST['importance'] : null;
-    $weight = isset($_POST['weight']) && $_POST['weight'] !== '' ? (float)$_POST['weight'] : null;
-    $price = isset($_POST['price']) && $_POST['price'] !== '' ? (float)$_POST['price'] : null;
+        if ($id <= 0 || $rating < 1 || $rating > 5) {
+            json_out(['success' => false, 'error' => 'Invalid event ID or rating value.'], 400);
+        }
 
-    $date = null;
-    if (isset($_POST['date_of_acquisition']) && $_POST['date_of_acquisition'] !== '') $date = (string)$_POST['date_of_acquisition'];
-    if (isset($_POST['acquisition_date']) && $_POST['acquisition_date'] !== '') $date = (string)$_POST['acquisition_date'];
-
-    $description = isset($_POST['description']) && trim((string)$_POST['description']) !== '' ? trim((string)$_POST['description']) : null;
-    $rating = isset($_POST['rating']) && $_POST['rating'] !== '' ? (int)$_POST['rating'] : null;
-
-    $newImage = handle_item_image_upload();
-
-    try {
-      if ($newImage !== null) {
-        $stmt = $pdo->prepare("
-          UPDATE item
-          SET name=:name, importance=:importance, weight=:weight, price=:price,
-              date_of_acquisition=:date_of_acquisition, description=:description, rating=:rating, image=:image
-          WHERE item_id=:item_id
-        ");
-        $stmt->execute([
-          ':name' => $name,
-          ':importance' => $importance,
-          ':weight' => $weight,
-          ':price' => $price,
-          ':date_of_acquisition' => $date,
-          ':description' => $description,
-          ':rating' => $rating,
-          ':image' => $newImage,
-          ':item_id' => $itemId,
-        ]);
-      } else {
-        $stmt = $pdo->prepare("
-          UPDATE item
-          SET name=:name, importance=:importance, weight=:weight, price=:price,
-              date_of_acquisition=:date_of_acquisition, description=:description, rating=:rating
-          WHERE item_id=:item_id
-        ");
-        $stmt->execute([
-          ':name' => $name,
-          ':importance' => $importance,
-          ':weight' => $weight,
-          ':price' => $price,
-          ':date_of_acquisition' => $date,
-          ':description' => $description,
-          ':rating' => $rating,
-          ':item_id' => $itemId,
-        ]);
-      }
-
-      json_out(['success' => true, 'image' => $newImage]);
-    } catch (Throwable $e) {
-      json_out(['success' => false, 'error' => $e->getMessage()], 500);
+        // Rating does not require ownership (any authenticated user can rate)
+        $eventDal->updateEventRating($id, $rating);
+        json_out(['success' => true]);
     }
-  }
 
-  json_out(['success' => false, 'error' => 'Ação inválida.'], 400);
+    // =========================
+    // UPDATE
+    // =========================
+    if ($action === 'update') {
+        $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
+        $collection = trim((string)($_POST['collection'] ?? ''));
+        $name = trim((string)($_POST['name'] ?? ''));
+        $location = trim((string)($_POST['location'] ?? ''));
+        $date = trim((string)($_POST['date'] ?? ''));
+        $description = trim((string)($_POST['description'] ?? ''));
+
+        if ($id <= 0 || $collection === '' || $name === '' || $location === '' || $date === '' || $description === '') {
+            json_out(['success' => false, 'error' => 'Missing required fields for update'], 400);
+        }
+
+        $ownerId = $eventDal->getEventOwnerId($id);
+        if ($ownerId === null || $ownerId !== (int)$currentUserId) {
+            json_out(['success' => false, 'error' => 'Permission denied. You are not the owner of this event.'], 403);
+        }
+
+        $collectionId = (int)$collection;
+
+        // Optional new image upload
+        $imagePath = handle_image_upload('image');
+        if ($imagePath !== null) {
+            // If you want image updates on update, you need a DAL method.
+            // Keeping it simple: update basic fields only (like your current DAL).
+            // You can add updateEventWithImage(...) later if needed.
+        }
+
+        $eventDal->updateEvent($id, $collectionId, $name, $location, $date, $description);
+        json_out(['success' => true]);
+    }
+
+    // =========================
+    // CREATE (default)
+    // =========================
+    if ($action === 'create') {
+        $collection = trim((string)($_POST['collection'] ?? ''));
+        $name = trim((string)($_POST['name'] ?? ''));
+        $location = trim((string)($_POST['location'] ?? ''));
+        $date = trim((string)($_POST['date'] ?? ''));
+        $description = trim((string)($_POST['description'] ?? ''));
+
+        if ($collection === '' || $name === '' || $location === '' || $date === '' || $description === '') {
+            json_out(['success' => false, 'error' => 'Missing required fields'], 400);
+        }
+
+        $collectionId = (int)$collection;
+
+        // Ownership check: must own the collection to create events inside it
+        if (!$eventDal->checkIfUserOwnsCollection((int)$currentUserId, $collectionId)) {
+            json_out(['success' => false, 'error' => 'Permission denied. You do not own this collection.'], 403);
+        }
+
+        $imagePath = handle_image_upload('image'); // <-- this is what your collection page now sends
+
+        $newId = $eventDal->createEvent($collectionId, $name, $location, $date, $description, $imagePath);
+
+        json_out(['success' => true, 'id' => $newId]);
+    }
+
+    json_out(['success' => false, 'error' => 'Invalid action'], 400);
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-
-  if ($requireAuthForGet && !$currentUserId) {
-    json_out(['success' => false, 'error' => 'Usuário não autenticado.'], 401);
-  }
-
-  if (isset($_GET['item_id'])) {
-    $itemId = (int)$_GET['item_id'];
-    if ($itemId <= 0) json_out(['success' => false, 'error' => 'item_id inválido.'], 400);
-
-    if (!user_owns_item($pdo, $itemId, (int)$currentUserId)) {
-      json_out(['success' => false, 'error' => 'Sem permissão neste item.'], 403);
-    }
-
-    $stmt = $pdo->prepare("SELECT * FROM item WHERE item_id = ? LIMIT 1");
-    $stmt->execute([$itemId]);
-    $item = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    if (!$item) json_out(['success' => false, 'error' => 'Item não encontrado.'], 404);
-    json_out(['success' => true, 'item' => $item]);
-  }
-
-  if (isset($_GET['collection_id'])) {
-    $collectionId = (int)$_GET['collection_id'];
-    if ($collectionId <= 0) json_out(['success' => false, 'error' => 'collection_id inválido.'], 400);
-
-    if (!user_owns_collection($pdo, $collectionId, (int)$currentUserId)) {
-      json_out(['success' => false, 'error' => 'Sem permissão nesta coleção.'], 403);
-    }
-
-    $stmt = $pdo->prepare("SELECT * FROM item WHERE collection_id = ? ORDER BY item_id DESC");
-    $stmt->execute([$collectionId]);
-    $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    json_out(['success' => true, 'items' => $items]);
-  }
-
-  json_out(['success' => false, 'error' => 'Use ?collection_id= ou ?item_id=.'], 400);
+// =========================
+// GET: list events
+// =========================
+try {
+    $events = $eventDal->getAllEvents();
+    json_out(['success' => true, 'events' => $events]);
+} catch (Throwable $e) {
+    json_out(['success' => false, 'error' => $e->getMessage()], 500);
 }
-
-json_out(['success' => false, 'error' => 'Método não suportado.'], 405);

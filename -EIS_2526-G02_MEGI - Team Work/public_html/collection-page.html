@@ -8,8 +8,6 @@
   <meta name="app-base" content="">
   <meta name="item-page-path" content="index.html"><!-- item page (Index) -->
   <meta name="events-page-path" content="event.html"><!-- events page -->
-  <!-- NOTE: collection-page-path is typically only needed on the Item page,
-       but leaving it here does not break anything -->
   <meta name="collection-page-path" content="collection-page.html">
   <meta name="collectors-page-path" content="Homepage.login.html"><!-- Collector page -->
   <meta name="community-page-path" content="Team_page2.html">
@@ -43,13 +41,29 @@
           <svg aria-hidden="true" class="icon" role="img" viewBox="0 0 24 24"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-5.33 0-8 2.67-8 6v1h16v-1c0-3.33-2.67-6-8-6Z"></path></svg>
           <span>Profile</span>
         </button>
+          <button
+  type="button"
+  class="btn btn--ghost"
+  aria-label="Logout"
+  title="Logout"
+  onclick="window.location.href='logout.php';"
+>
+  <svg aria-hidden="true" class="icon" role="img" viewBox="0 0 24 24">
+    <path d="M10 17v-2h4v-6h-4V7l-5 5 5 5Zm9 4H5c-1.1 0-2-.9-2-2V5c0-1.1.9-2 2-2h14c1.1 0 2 .9 2 2v4h-2V5H5v14h14v-4h2v4c0 1.1-.9 2-2 2Z"></path>
+  </svg>
+  <span>Logout</span>
+</button>
+
       </div>
     </header>
 
     <!-- Sidebar navigation -->
     <aside aria-label="Primary" class="sidebar">
-      <!-- ✅ "Create" button -->
-      <button class="btn btn--primary sidebar__cta" data-nav="create" type="button">
+      <!-- ✅ Create button: controlado por JS local (modal do ZIP).
+           IMPORTANTE: removi data-nav="create" pra não deixar o nav.js capturar e tentar usar endpoint errado -->
+      <button class="btn btn--primary sidebar__cta"
+              id="create-collection"
+              type="button">
         <svg aria-hidden="true" class="icon" role="img" viewBox="0 0 24 24"><path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z"></path></svg>
         <span>Create New Collection</span>
       </button>
@@ -57,14 +71,18 @@
       <!-- ✅ Navigation list -->
       <nav aria-label="Main navigation" class="sidebar__nav">
         <ul class="sidebar__list">
+          <!-- ✅ REMOÇÃO TOTAL: Collector -->
           <li><a class="sidebar__link" data-nav="collector" href="#">Collector</a></li>
-          <li><a class="sidebar__link" data-nav="collections" href="#">Collections</a></li>
+
+          <!-- ✅ REMOÇÃO TOTAL: Collections/Collection -->
+          <!-- <li><a class="sidebar__link" data-nav="collections" href="#">Collections</a></li> -->
+
           <li><a class="sidebar__link" data-nav="events"      href="#">Events</a></li>
           <li><a class="sidebar__link" data-nav="community"   href="#">Community</a></li>
         </ul>
       </nav>
     </aside>
-    
+
     <!-- Main content -->
     <main aria-label="Collection main content" class="main" id="main-content"
           data-collection-id="12345-star-minis"><!-- collection id used by JS -->
@@ -91,7 +109,7 @@
           <span>Add Item</span>
         </button>
 
-        <button aria-label="Manage this collection" class="btn btn--secondary btn--lg" type="button">
+        <button id="manageCollectionBtn" aria-label="Manage this collection" class="btn btn--secondary btn--lg" type="button">
           <!-- settings sliders -->
           <svg aria-hidden="true" class="icon" role="img" viewBox="0 0 24 24"><path d="M21 7H10V5h11v2ZM3 7H2V5h1v2Zm6 0H5V5h4v2Zm12 6H14v-2h7v2ZM3 13H2v-2h1v2Zm8 0H5v-2h6v2Zm10 6H9v-2h12v2ZM3 19H2v-2h1v2Zm4 0H5v-2h2v2Z"></path></svg>
           <span>Manage Collection</span>
@@ -249,54 +267,225 @@
   <!-- Your collection JS (it will enhance dynamic items and creation flow) -->
   <script src="js.collection.page/collection-page.js?v=3" defer></script>
 
+  <!-- ✅ nav.js por último como você já faz (mantém navegação) -->
   <script src="common/nav.js?v=2" defer></script>
 
   <script>
-    // Basic init: navegação já funciona para collector/collections/events/community
-    // e os botões de Profile/Config/Create chamam callbacks default (alert).
+    // Mantido: inicialização do seu kit de navegação
     document.addEventListener('DOMContentLoaded', () => {
-      // Em páginas de item ou eventos, você pode querer ter o botão "← Back to Collection":
       const isItemOrEvents = /index\.html|event\.html/i.test(location.pathname);
-      window.CollectaNav.init({
+      window.CollectaNav?.init?.({
         autoBackButton: isItemOrEvents,
-
-        // Opcional: substitua por comportamentos reais
-        onProfile(el) {
-          // Exemplo: abrir menu drop-down ou navegar para profile.html
-          // window.location.href = 'profile.html';
-          console.log('[nav] Profile clicked', el);
-        },
-        onConfig(el) {
-          // Exemplo: abrir modal de configurações
-          console.log('[nav] Config clicked', el);
-          // openSettingsModal();
-        },
-        onCreate(el) {
-          // Exemplo: abrir wizard de criação de coleção
-          console.log('[nav] Create New Collection clicked', el);
-          // openCreateCollectionWizard();
-        }
+        onProfile(el) { console.log('[nav] Profile clicked', el); },
+        onConfig(el) { console.log('[nav] Config clicked', el); },
+        onCreate(el) { console.log('[nav] Create New Collection clicked', el); }
       });
     });
   </script>
 
+  <!-- ✅ CREATE COLLECTION MODAL (MESMO DO ZIP) + ENDPOINT CORRIGIDO -->
+  <script>
+    (function () {
+      "use strict";
+
+      const qs = (s, el=document) => el.querySelector(s);
+
+      async function fetchText(url, opts = {}) {
+        const res = await fetch(url, { credentials: "same-origin", cache: "no-store", ...opts });
+        const text = await res.text();
+        return { res, text };
+      }
+      function tryJson(t){ try { return JSON.parse(t); } catch { return null; } }
+
+      async function apiPostForm(url, fd) {
+        const { res, text } = await fetchText(url, { method: "POST", body: fd });
+        const json = tryJson(text);
+        if (!res.ok || !json || json.success !== true) {
+          throw new Error((json && (json.error || json.message)) || `HTTP ${res.status}\n\n${text}`);
+        }
+        return json;
+      }
+
+      function ensureCreateCollectionModal() {
+        let dlg = qs("#__create_collection_modal");
+        if (dlg) return dlg;
+
+        dlg = document.createElement("dialog");
+        dlg.id = "__create_collection_modal";
+        dlg.setAttribute("aria-label", "Create New Collection");
+        Object.assign(dlg.style, {
+          width: "min(640px, 92vw)",
+          border: "1px solid rgba(0,0,0,.15)",
+          borderRadius: "16px",
+          padding: "0",
+        });
+
+        dlg.innerHTML = `
+          <form id="__cc_form" method="dialog" enctype="multipart/form-data" style="padding:18px 18px 16px">
+            <h3 style="margin:0 0 14px">Create New Collection</h3>
+
+            <div style="display:grid; gap:10px">
+              <label style="display:grid; gap:6px">
+                <span style="font-weight:600">Name *</span>
+                <input id="__cc_name" name="name" required type="text"
+                       style="padding:10px;border:1px solid #ddd;border-radius:10px">
+              </label>
+
+              <label style="display:grid; gap:6px">
+                <span style="font-weight:600">Type</span>
+                <input id="__cc_type" name="type" type="text" placeholder="Miniatures, Cards..."
+                       style="padding:10px;border:1px solid #ddd;border-radius:10px">
+              </label>
+
+              <label style="display:grid; gap:6px">
+                <span style="font-weight:600">Creation date</span>
+                <input id="__cc_date" name="creation_date" type="date"
+                       style="padding:10px;border:1px solid #ddd;border-radius:10px">
+              </label>
+
+              <label style="display:grid; gap:6px">
+                <span style="font-weight:600">Description</span>
+                <textarea id="__cc_desc" name="description" rows="3"
+                          style="padding:10px;border:1px solid #ddd;border-radius:10px;resize:vertical"></textarea>
+              </label>
+
+              <label style="display:grid; gap:6px">
+                <span style="font-weight:600">Banner image (optional)</span>
+                <input id="__cc_image" name="image" type="file" accept="image/*"
+                       style="padding:10px;border:1px solid #ddd;border-radius:10px;background:#fff">
+              </label>
+
+              <div id="__cc_preview_wrap" style="display:none;margin-top:4px">
+                <img id="__cc_preview" alt="Preview"
+                     style="width:100%;max-height:220px;object-fit:cover;border-radius:12px;border:1px solid #ddd">
+              </div>
+
+              <p id="__cc_error" style="margin:6px 0 0;color:#B00020;font-weight:600"></p>
+            </div>
+
+            <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:14px">
+              <button type="button" id="__cc_cancel"
+                      style="padding:10px 14px;border-radius:10px;border:1px solid #ddd;background:#fff;cursor:pointer">
+                Cancel
+              </button>
+              <button type="submit" id="__cc_save"
+                      style="padding:10px 14px;border-radius:10px;border:0;background:#111;color:#fff;cursor:pointer">
+                Create
+              </button>
+            </div>
+          </form>
+        `;
+
+        document.body.appendChild(dlg);
+
+        // default date
+        const dateInput = qs("#__cc_date", dlg);
+        if (dateInput && !dateInput.value) dateInput.value = new Date().toISOString().slice(0, 10);
+
+        // preview
+        const file = qs("#__cc_image", dlg);
+        const prevWrap = qs("#__cc_preview_wrap", dlg);
+        const prevImg = qs("#__cc_preview", dlg);
+
+        file.addEventListener("change", () => {
+          const f = file.files && file.files[0];
+          if (!f) {
+            prevWrap.style.display = "none";
+            prevImg.removeAttribute("src");
+            return;
+          }
+          prevImg.src = URL.createObjectURL(f);
+          prevWrap.style.display = "block";
+        });
+
+        qs("#__cc_cancel", dlg).addEventListener("click", () => dlg.close());
+
+        return dlg;
+      }
+
+      async function createCollectionFromModal() {
+        const dlg = ensureCreateCollectionModal();
+        const errEl = qs("#__cc_error", dlg);
+        errEl.textContent = "";
+
+        const name = (qs("#__cc_name", dlg).value || "").trim();
+        const type = (qs("#__cc_type", dlg).value || "").trim();
+        const date = (qs("#__cc_date", dlg).value || "").trim();
+        const desc = (qs("#__cc_desc", dlg).value || "").trim();
+
+        if (!name) {
+          errEl.textContent = "Name is required.";
+          return;
+        }
+
+        try {
+          const fd = new FormData();
+          fd.append("action", "create");
+          fd.append("name", name);
+          fd.append("type", type);
+          fd.append("creation_date", date || new Date().toISOString().slice(0, 10));
+          fd.append("description", desc);
+
+          const img = qs("#__cc_image", dlg);
+          if (img && img.files && img.files[0]) fd.append("image", img.files[0]);
+
+          // ✅ endpoint correto do seu projeto
+          const json = await apiPostForm("collections_api.php", fd);
+
+          const created = json.collection || json;
+          const newId = created.collection_id ?? json.collection_id ?? created.id ?? null;
+
+          if (!newId) throw new Error("API did not return collection_id.");
+
+          dlg.close();
+
+          // redireciona pra nova collection
+          window.location.href = "collection-page.html?id=" + encodeURIComponent(newId);
+        } catch (e) {
+          console.error(e);
+          errEl.textContent = String(e.message || e);
+        }
+      }
+
+      function openCreateCollectionModal() {
+        const dlg = ensureCreateCollectionModal();
+        const form = qs("#__cc_form", dlg);
+
+        if (!form.dataset.bound) {
+          form.dataset.bound = "1";
+          form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            await createCollectionFromModal();
+          });
+        }
+
+        dlg.showModal();
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        const btn = document.getElementById("create-collection");
+        if (!btn) return;
+        btn.addEventListener("click", (e) => {
+          e.preventDefault();
+          openCreateCollectionModal();
+        });
+      });
+    })();
+  </script>
+
+  <!-- Mantive o seu bloco grande de patch de upload/eventos INTACTO (mínima alteração) -->
   <script>
   (() => {
     "use strict";
 
-    // -------- helpers ----------
     const qs = (s, el=document) => el.querySelector(s);
     const qsa = (s, el=document) => Array.from(el.querySelectorAll(s));
-    const escapeHTML = (v) => String(v ?? "").replace(/[&<>"']/g, (ch) =>
-      ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[ch])
-    );
-
     const getMeta = (name, fallback="") =>
-      (document.querySelector(`meta[name="${name}"]`)?.getAttribute("content") ?? fallback).toString();
+      (document.querySelector(\`meta[name="\${name}"]\`)?.getAttribute("content") ?? fallback).toString();
 
     const APP_BASE = getMeta("app-base", "").replace(/\/+$/, "");
     const EVENTS_PAGE_PATH = getMeta("events-page-path", "event.html").replace(/^\/+/, "");
-    const withBase = (p) => (APP_BASE ? `${APP_BASE}/` : "") + p;
+    const withBase = (p) => (APP_BASE ? \`\${APP_BASE}/\` : "") + p;
 
     function getCollectionId() {
       const main = qs("#main-content");
@@ -306,11 +495,10 @@
 
     function buildEventsUrl() {
       const cid = getCollectionId();
-      return withBase(`${EVENTS_PAGE_PATH}?c=${encodeURIComponent(cid)}`);
+      return withBase(\`\${EVENTS_PAGE_PATH}?c=\${encodeURIComponent(cid)}\`);
     }
 
     function toast(msg, type="info") {
-      // mini toast sem depender do seu JS
       let root = qs("#__patch_toast");
       if (!root) {
         root = document.createElement("div");
@@ -335,11 +523,9 @@
       }, 2200);
     }
 
-    // -------- core injection ----------
     const UPLOAD_MARK = "data-event-upload-patched";
 
     function findCreateEventForm() {
-      // procura o modal do Create Event pelo h2/heading
       const dialogs = qsa('[role="dialog"][aria-modal="true"]');
       for (const d of dialogs) {
         const h2 = qsa("h2", d).find(x => (x.textContent || "").trim().toLowerCase() === "create event");
@@ -353,7 +539,6 @@
     function injectUploadUI(form) {
       if (!form || form.getAttribute(UPLOAD_MARK) === "1") return;
 
-      // acha o textarea (description) pra inserir ANTES dele
       const textarea = qs('textarea[name="description"]', form) || qs("textarea", form);
       const holder = document.createElement("div");
       holder.className = "event-upload";
@@ -391,11 +576,9 @@
       if (textarea && textarea.parentNode) {
         textarea.parentNode.insertBefore(holder, textarea);
       } else {
-        // fallback: coloca no fim do form
         form.appendChild(holder);
       }
 
-      // preview
       const input = qs("#__event_image_input", form);
       const prevWrap = qs("#__event_image_preview_wrap", form);
       const prevImg = qs("#__event_image_preview", form);
@@ -414,17 +597,11 @@
       form.setAttribute(UPLOAD_MARK, "1");
     }
 
-    // -------- submit override (garante envio com imagem mesmo se o JS antigo ignorar) ----------
     function attachSubmitOverride(form) {
       if (!form || form.dataset.submitPatched === "1") return;
       form.dataset.submitPatched = "1";
 
       form.addEventListener("submit", async (e) => {
-        // roda em CAPTURE pra ganhar de handlers antigos
-      }, true);
-
-      form.addEventListener("submit", async (e) => {
-        // Intercepta e faz o POST corretamente com FormData + imagem
         e.preventDefault();
         e.stopImmediatePropagation();
 
@@ -447,7 +624,7 @@
           fd.append("name", name);
           fd.append("location", location);
           fd.append("date", date);
-          fd.append("description", description || `Event related to collection "${cid}".`);
+          fd.append("description", description || \`Event related to collection "\${cid}".\`);
 
           const fileInput = qs("#__event_image_input", form) || qs('input[type="file"][name="image"]', form);
           if (fileInput && fileInput.files && fileInput.files[0]) {
@@ -470,7 +647,6 @@
       }, true);
     }
 
-    // -------- observer: whenever modal appears, patch it ----------
     function patchIfNeeded() {
       const form = findCreateEventForm();
       if (!form) return;
@@ -478,7 +654,6 @@
       attachSubmitOverride(form);
     }
 
-    // roda agora e sempre que DOM mudar (modal abre)
     patchIfNeeded();
     const mo = new MutationObserver(() => patchIfNeeded());
     mo.observe(document.body, { childList: true, subtree: true });

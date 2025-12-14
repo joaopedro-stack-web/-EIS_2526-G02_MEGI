@@ -3,7 +3,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const qs = (s, el = document) => el.querySelector(s);
 
-  const BUILD_TAG = "ITEM-JS v10 (hero banner hard-fix + fallback sessionStorage)";
+  const BUILD_TAG = "ITEM-JS v11 (collection banner from DB + correct collections_api.php)";
   toast(`✅ ${BUILD_TAG} carregado`, "success");
 
   function toast(msg, type = "info") {
@@ -64,7 +64,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const appBase = getMeta("app-base", "").replace(/\/+$/, "");
     if (appBase) return `${appBase}/${p.replace(/^\/+/, "")}`;
 
-    // fallback: relativo à pasta atual (public_html/)
+    // fallback: relativo à pasta atual
     const baseDir = location.href.replace(/[#?].*$/, "").replace(/\/[^\/]*$/, "/");
     return baseDir + p.replace(/^\/+/, "");
   }
@@ -127,7 +127,8 @@ document.addEventListener("DOMContentLoaded", () => {
     return ITEMS_ENDPOINT;
   }
 
-  const COLLECTIONS_ENDPOINT = "collection_api.php";
+  // ✅ AQUI ESTAVA O BUG: você colocou "collection_api.php", mas o certo é o arquivo REAL do teu projeto
+  const COLLECTIONS_ENDPOINT = "collections_api.php";
 
   // --------- ELEMENTS ----------
   const summaryCard = qs("#summaryCard");
@@ -155,7 +156,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const editPhoto = qs("#editPhoto");
   const itemPhotoPreview = qs("#itemPhotoPreview");
 
-  // ✅ HERO da coleção na Item Page (essa é a parte do seu print)
+  // HERO
   const heroTitle = qs(".hero__title");
   const heroSubtitle = qs(".hero__subtitle");
   const heroImg = qs(".hero__media img");
@@ -222,46 +223,38 @@ document.addEventListener("DOMContentLoaded", () => {
     paintStars(ratingViewStars, itemData.rating || 0);
   }
 
-  // ✅ aplica o banner na UI
+  // ✅ aplica o banner da coleção vindo do BANCO
   function applyCollectionHero(c) {
     if (!c) return;
 
-    if (heroTitle) heroTitle.textContent = c.name || heroTitle.textContent || "Collection";
+    if (heroTitle) heroTitle.textContent = c.name || "Collection";
 
     if (heroSubtitle) {
-      const parts = [];
-      if (c.type) parts.push(c.type);
-      if (c.creation_date) parts.push(c.creation_date);
-      heroSubtitle.textContent = parts.length ? parts.join(" · ") : (c.description || heroSubtitle.textContent || "");
+      // você pediu: "nome da coleção e tipo do item"
+      // aqui: coleção -> name, e "type" da coleção aparece
+      heroSubtitle.textContent = c.type ? String(c.type) : (c.description || "Item");
     }
 
-    if (heroImg) {
-      // se vier imagem, tenta resolver e aplicar
-      if (c.image) {
-        const src1 = resolveAssetUrl(c.image);
-        heroImg.src = src1;
-        heroImg.alt = `${c.name || "Collection"} banner`;
+    // ✅ imagem da coleção no BD
+    const imgPath = c.image || c.cover_image || "";
+    if (heroImg && imgPath) {
+      const src = resolveAssetUrl(imgPath);
+      heroImg.src = src;
+      heroImg.alt = `${c.name || "Collection"} banner`;
 
-        // fallback automático se der 404
-        heroImg.onerror = () => {
-          // tenta segunda variação: forçar "./"
-          const src2 = resolveAssetUrl("./" + String(c.image).replace(/^\/+/, ""));
-          if (src2 !== heroImg.src) {
-            heroImg.src = src2;
-            return;
-          }
-          // se ainda falhar, mantém o que já tinha no HTML
-        };
-      }
+      // fallback visual caso a imagem salva tenha caminho quebrado
+      heroImg.onerror = () => {
+        heroImg.onerror = null;
+        heroImg.src = "https://picsum.photos/seed/collecta_banner/1400/500";
+      };
     }
   }
 
-  // ✅ tenta buscar da API; se falhar, usa fallback do sessionStorage
   async function loadCollectionHero() {
     if (!params.collectionId) return;
 
-    // 1) fallback imediato do sessionStorage (fica instantâneo)
     try {
+      // tenta cache
       const raw = sessionStorage.getItem(`collecta_collection_${params.collectionId}`);
       if (raw) {
         const cached = JSON.parse(raw);
@@ -269,7 +262,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     } catch (_) {}
 
-    // 2) tenta API (fonte oficial)
+    // ✅ busca coleção no endpoint correto
     try {
       const json = await apiGetJson(
         `${COLLECTIONS_ENDPOINT}?id=${encodeURIComponent(params.collectionId)}&t=${Date.now()}`
@@ -277,16 +270,13 @@ document.addEventListener("DOMContentLoaded", () => {
       const c = json.collection || null;
       if (!c) return;
 
-      // salva cache pro fallback futuro
       try {
         sessionStorage.setItem(`collecta_collection_${params.collectionId}`, JSON.stringify(c));
       } catch (_) {}
 
       applyCollectionHero(c);
-
     } catch (e) {
       console.error(e);
-      // agora você VÊ o motivo (antes ficava silencioso e parecia que "não fez nada")
       toast("Não consegui carregar banner da coleção.\n" + (e.message || e), "error");
     }
   }
@@ -385,7 +375,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   (async () => {
     try {
-      await loadCollectionHero();  // ✅ essa é a parte do banner que você quer
+      await loadCollectionHero();  // ✅ banner da coleção do banco
       await loadItemFromApi();
     } catch (e) {
       console.error(e);

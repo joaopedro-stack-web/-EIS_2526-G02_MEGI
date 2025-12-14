@@ -1,457 +1,465 @@
-(() => {
-  "use strict";
+'use strict';
 
-  const qs = (s, el = document) => el.querySelector(s);
-  const qsa = (s, el = document) => Array.from(el.querySelectorAll(s));
+// Agora os eventos vêm do backend, então começamos com vazio
+let events = [];
 
-  function toast(msg, type = "info") {
-    let root = qs("#__toast_event");
-    if (!root) {
-      root = document.createElement("div");
-      root.id = "__toast_event";
-      Object.assign(root.style, {
-        position: "fixed",
-        right: "16px",
-        bottom: "16px",
-        zIndex: 999999,
-        display: "flex",
-        flexDirection: "column",
-        gap: "8px",
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function isPast(dateISO) {
+  return dateISO < todayISO();
+}
+
+function daysUntil(dateISO) {
+  return Math.ceil((new Date(dateISO) - new Date(todayISO())) / 86400000);
+}
+
+function isSoon(dateISO) {
+  const n = daysUntil(dateISO);
+  return n >= 0 && n <= 7;
+}
+
+const listEvent     = document.getElementById('event-list');
+const newEvent      = document.getElementById('new-event');
+const filterComing  = document.getElementById('coming');
+const filterPast    = document.getElementById('past');
+const filterAll     = document.getElementById('all');
+
+const dialog        = document.getElementById('event-dialog');
+const form          = document.getElementById('event-form');
+const formTitle     = document.getElementById('form-title');
+
+const fCollection   = document.getElementById('form-collection');
+const fName         = document.getElementById('form-name');
+const fLocation     = document.getElementById('form-location');
+const fDate         = document.getElementById('form-date');
+const fDesc         = document.getElementById('form-desc');
+
+const fImage        = document.getElementById('form-image');
+const imageRow      = document.getElementById('image-row');
+
+const cancelBtn     = document.getElementById('cancel');
+const formError     = document.getElementById('form-error');
+
+let filter = 'coming';
+let editingId = null;
+
+// ✅ FIX: pega collection id da URL (?c=ID)
+function getCollectionIdFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('c') || params.get('id') || '';
+}
+
+// ✅ FIX: abre o modal via URL &open=create
+function shouldOpenCreateFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  return (params.get('open') || '').toLowerCase() === 'create';
+}
+
+// ============================================================================
+// RENDERIZAÇÃO DE EVENTOS (MODELO ORIGINAL)
+// ============================================================================
+function render() {
+  listEvent.innerHTML = '';
+
+  const ordered = [...events].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+
+  const filtered = ordered.filter(ev => {
+    if (filter === 'all') return true;
+    if (filter === 'coming') return !isPast(ev.date || '');
+    if (filter === 'past') return isPast(ev.date || '');
+    return true;
+  });
+
+  if (!filtered.length) {
+    const p = document.createElement('p');
+    p.textContent = 'No events found for this filter.';
+    listEvent.appendChild(p);
+    return;
+  }
+
+  filtered.forEach(ev => listEvent.appendChild(makeCard(ev)));
+}
+
+function openDetailDialog(ev) {
+  const dlg   = document.getElementById('detail-dialog');
+  const imgEl = document.getElementById('detail-image');
+  const h2    = document.getElementById('detail-title');
+  const chipC = document.getElementById('detail-collection');
+  const chipD = document.getElementById('detail-date');
+  const chipL = document.getElementById('detail-location');
+  const chipR = document.getElementById('detail-rating');
+  const desc  = document.getElementById('detail-desc');
+
+  if (ev.image) {
+    imgEl.src = ev.image;
+    imgEl.alt = `Image of ${ev.name || 'event'}`;
+    imgEl.style.display = '';
+  } else {
+    imgEl.removeAttribute('src');
+    imgEl.alt = '';
+    imgEl.style.display = 'none';
+  }
+
+  h2.textContent = ev.name || 'Untitled event';
+  chipC.textContent = ev.collection ? `Collection: ${ev.collection}` : 'Collection: –';
+  chipD.textContent = ev.date ? `Date: ${ev.date}` : 'Date: –';
+  chipL.textContent = ev.location ? `City: ${ev.location}` : 'City: –';
+  chipR.textContent = `Rating: ${ev.rating ?? 0}/5`;
+  desc.textContent  = ev.description || 'No description.';
+
+  document.getElementById('detail-close').onclick = () => dlg.close();
+  dlg.showModal();
+}
+
+function makeCard(ev) {
+  const article = document.createElement('article');
+  article.className = 'event-posts';
+
+  if (ev.image) {
+    article.style.backgroundImage = `url(${ev.image})`;
+    article.classList.add('has-image');
+  } else {
+    article.style.removeProperty('background-image');
+    article.classList.remove('has-image');
+  }
+
+  const header = document.createElement('div');
+  header.className = 'event-post-title';
+
+  const badge = document.createElement('span');
+  badge.className = 'badge';
+  badge.textContent = ev.collection;
+
+  const right = document.createElement('div');
+  right.className = 'meta-right';
+  right.appendChild(ratingComponent(ev));
+
+  header.append(badge, right);
+
+  const body = document.createElement('div');
+  body.className = 'event-post-body';
+
+  const title = document.createElement('h3');
+  title.className = 'event-title';
+  title.textContent = ev.name;
+
+  const extra = document.createElement('div');
+  extra.className = 'event-extra';
+
+  const dateChip = document.createElement('span');
+  dateChip.className = 'chip';
+  dateChip.textContent = 'Date: ' + (ev.date || '-');
+  extra.appendChild(dateChip);
+
+  if (ev.location) {
+    const locChip = document.createElement('span');
+    locChip.className = 'chip';
+    locChip.textContent = 'City: ' + ev.location;
+    extra.appendChild(locChip);
+  }
+
+  if (!isPast(ev.date || '') && isSoon(ev.date || '')) {
+    const soon = document.createElement('span');
+    soon.className = 'chip';
+    soon.textContent = 'Soon!';
+    extra.appendChild(soon);
+  }
+
+  const actions = document.createElement('menu');
+  actions.className = 'card-actions';
+
+  const editBtn = document.createElement('button');
+  editBtn.className = 'mini-btn edit';
+  editBtn.textContent = 'Edit';
+  editBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (!ev.id) {
+      alert('Missing event ID from backend.');
+      return;
+    }
+    openForm(ev.id);
+  });
+
+  const delBtn = document.createElement('button');
+  delBtn.className = 'mini-btn danger delete';
+  delBtn.textContent = 'Delete';
+  delBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (!ev.id) {
+      alert('Missing event ID from backend.');
+      return;
+    }
+    delEvent(ev.id);
+  });
+
+  actions.append(editBtn, delBtn);
+
+  body.append(title, extra, actions);
+  article.append(header, body);
+
+  article.style.cursor = 'pointer';
+  article.addEventListener('click', (e) => {
+    if (e.target.closest('button') || e.target.closest('.rating')) {
+      return;
+    }
+    openDetailDialog(ev);
+  });
+
+  return article;
+}
+
+/* =======================
+   5) RATING (ORIGINAL)
+   ======================= */
+function ratingComponent(ev) {
+  const wrap = document.createElement('div');
+  wrap.className = 'rating';
+
+  const past = isPast(ev.date || '');
+  const eventId = ev.id;
+
+  for (let i = 1; i <= 5; i++) {
+    const el = document.createElement(past ? 'button' : 'span');
+    el.className = 'star' + (past ? ' btn' : '');
+    el.textContent = (ev.rating || 0) >= i ? '★' : '☆';
+    el.setAttribute('aria-label', `${i} stars`);
+    el.setAttribute('data-value', i);
+
+    if ((ev.rating || 0) === i) el.setAttribute('aria-pressed', 'true');
+
+    if (past) {
+      el.addEventListener('click', async (e) => {
+        e.stopPropagation();
+
+        const newRating = i;
+        const formData = new FormData();
+        formData.append('action', 'rate');
+        formData.append('id', eventId);
+        formData.append('rating', newRating);
+
+        try {
+          const response = await fetch('events_api.php', {
+            method: 'POST',
+            body: formData,
+          });
+
+          const result = await response.json();
+
+          if (result.success) {
+            await loadEvents();
+          } else {
+            alert('Could not set rating: ' + (result.error || 'Check if you are authenticated.'));
+          }
+        } catch (error) {
+          console.error('API Error:', error);
+          alert('An unexpected error occurred while rating the event.');
+        }
       });
-      document.body.appendChild(root);
-    }
-    const el = document.createElement("div");
-    el.textContent = msg;
-    Object.assign(el.style, {
-      background: type === "error" ? "#B00020" : type === "success" ? "#0B8A83" : "#111",
-      color: "#fff",
-      padding: "10px 14px",
-      borderRadius: "10px",
-      boxShadow: "0 8px 24px rgba(0,0,0,.25)",
-      fontSize: "14px",
-      maxWidth: "520px",
-      whiteSpace: "pre-wrap",
-    });
-    root.appendChild(el);
-    setTimeout(() => {
-      el.style.opacity = "0";
-      el.style.transform = "translateY(6px)";
-      el.style.transition = "all .25s ease";
-      setTimeout(() => el.remove(), 250);
-    }, 4200);
-  }
-
-  function getMeta(name, fallback = "") {
-    return (document.querySelector(`meta[name="${name}"]`)?.getAttribute("content") ?? fallback).toString();
-  }
-
-  function resolveAssetUrl(path) {
-    const p = String(path || "").trim();
-    if (!p) return "";
-    if (/^(https?:\/\/|data:|blob:)/i.test(p)) return p;
-    if (p.startsWith("/")) return p;
-
-    const appBase = getMeta("app-base", "").replace(/\/+$/, "");
-    if (appBase) return `${appBase}/${p.replace(/^\/+/, "")}`;
-
-    const baseDir = location.href.replace(/[#?].*$/, "").replace(/\/[^\/]*$/, "/");
-    return baseDir + p.replace(/^\/+/, "");
-  }
-
-  async function fetchText(url, opts = {}) {
-    const res = await fetch(url, { cache: "no-store", credentials: "same-origin", ...opts });
-    const text = await res.text();
-    return { res, text };
-  }
-
-  function tryParseJson(text) {
-    try { return JSON.parse(text); } catch { return null; }
-  }
-
-  function pickSuccess(json) {
-    if (!json) return false;
-    return json.success === true || json.success === 1 || json.ok === true || json.status === "ok";
-  }
-
-  function extractError(json, text, res) {
-    return json?.error || json?.message || `HTTP ${res.status}\n\n${text}`;
-  }
-
-  async function apiGetJson(url) {
-    const { res, text } = await fetchText(url);
-    const json = tryParseJson(text);
-    if (!res.ok || !pickSuccess(json)) throw new Error(extractError(json, text, res));
-    return json;
-  }
-
-  async function apiPostJson(url, fd) {
-    const { res, text } = await fetchText(url, { method: "POST", body: fd });
-    const json = tryParseJson(text);
-    if (!res.ok || !pickSuccess(json)) throw new Error(extractError(json, text, res));
-    return json;
-  }
-
-  function getParams() {
-    const u = new URL(location.href);
-    return {
-      collectionId: u.searchParams.get("c") || "",
-      open: u.searchParams.get("open") || "",
-    };
-  }
-
-  const params = getParams();
-
-  // Elements (do seu HTML original)
-  const listEl = qs("#event-list");
-  const btnNew = qs("#new-event");
-
-  const dialog = qs("#event-dialog");
-  const form = qs("#event-form");
-  const formTitle = qs("#form-title");
-  const formErr = qs("#form-error");
-
-  const selCollection = qs("#form-collection");
-  const inpName = qs("#form-name");
-  const inpLoc = qs("#form-location");
-  const inpDate = qs("#form-date");
-  const inpDesc = qs("#form-desc");
-  const inpImg = qs("#form-image");
-
-  const btnCancel = qs("#cancel");
-
-  const detailDialog = qs("#detail-dialog");
-  const detailTitle = qs("#detail-title");
-  const detailDesc = qs("#detail-desc");
-  const detailImage = qs("#detail-image");
-  const detailCollection = qs("#detail-collection");
-  const detailDate = qs("#detail-date");
-  const detailLocation = qs("#detail-location");
-  const detailRating = qs("#detail-rating");
-  const detailClose = qs("#detail-close");
-
-  const filterComing = qs("#coming");
-  const filterPast = qs("#past");
-  const filterAll = qs("#all");
-
-  const tpl = qs("#events");
-
-  const EVENTS_ENDPOINT = "events_api.php";
-  const COLLECTIONS_ENDPOINT = "collection_api.php";
-
-  let mode = "create";
-  let editingId = null;
-  let currentFilter = "all";
-  let cached = [];
-
-  function normalizeEvent(apiEv) {
-    return {
-      event_id: apiEv.event_id ?? apiEv.id ?? null,
-      collection_id: apiEv.collection_id ?? apiEv.collection ?? "",
-      name: apiEv.name ?? "",
-      location: apiEv.location ?? "",
-      date: apiEv.date ?? "",
-      description: apiEv.description ?? "",
-      rating: apiEv.rating ?? "",
-      image: apiEv.image ?? null,
-    };
-  }
-
-  function resetForm() {
-    formErr.textContent = "";
-    inpName.value = "";
-    inpLoc.value = "";
-    inpDate.value = "";
-    inpDesc.value = "";
-    if (inpImg) inpImg.value = "";
-    mode = "create";
-    editingId = null;
-    formTitle.textContent = "New event";
-  }
-
-  function openCreate() {
-    resetForm();
-    if (params.collectionId && selCollection) {
-      selCollection.value = params.collectionId;
-      selCollection.disabled = true;
-    } else if (selCollection) {
-      selCollection.disabled = false;
-    }
-    dialog.showModal();
-  }
-
-  function openEdit(ev) {
-    resetForm();
-    mode = "edit";
-    editingId = ev.event_id;
-    formTitle.textContent = "Edit event";
-
-    if (selCollection) {
-      selCollection.value = String(ev.collection_id || "");
-      selCollection.disabled = !!params.collectionId;
-    }
-
-    inpName.value = ev.name || "";
-    inpLoc.value = ev.location || "";
-    inpDate.value = (ev.date || "").slice(0, 10);
-    inpDesc.value = ev.description || "";
-    dialog.showModal();
-  }
-
-  function closeDialog() {
-    try { dialog.close(); } catch {}
-  }
-
-  function isPast(dateStr) {
-    const d = new Date(dateStr);
-    const now = new Date();
-    d.setHours(0,0,0,0);
-    now.setHours(0,0,0,0);
-    return d < now;
-  }
-
-  function isComing(dateStr) {
-    const d = new Date(dateStr);
-    const now = new Date();
-    d.setHours(0,0,0,0);
-    now.setHours(0,0,0,0);
-    return d >= now;
-  }
-
-  function applyFilter(events) {
-    if (currentFilter === "past") return events.filter(e => e.date && isPast(e.date));
-    if (currentFilter === "coming") return events.filter(e => e.date && isComing(e.date));
-    return events;
-  }
-
-  // ✅ Render SEM mudar modelo: usa o template original do HTML
-  function render(events) {
-    if (!listEl) return;
-    listEl.innerHTML = "";
-
-    const filtered = applyFilter(events);
-    if (!filtered.length) return;
-
-    for (const ev of filtered) {
-      const node = tpl.content.firstElementChild.cloneNode(true);
-
-      // imagem
-      const img = node.querySelector(".event-picture");
-      if (img) {
-        if (ev.image) img.src = resolveAssetUrl(ev.image);
-        img.alt = ev.name || "Event image";
-      }
-
-      // título
-      const title = node.querySelector(".event-title");
-      if (title) title.textContent = ev.name || "";
-
-      // badge (no original pode estar vazio — então não inventa nada)
-      const badge = node.querySelector(".badge");
-      if (badge) badge.textContent = ""; // mantém layout original
-
-      // chips
-      const chipDate = node.querySelector(".chip-date");
-      const chipLoc = node.querySelector(".chip-location");
-      if (chipDate) chipDate.textContent = `Date: ${ev.date ? String(ev.date).slice(0,10) : ""}`;
-      if (chipLoc) chipLoc.textContent = `Location: ${ev.location || ""}`;
-
-      // botões
-      node.querySelector(".edit-button")?.addEventListener("click", () => openEdit(ev));
-      node.querySelector(".delete-button")?.addEventListener("click", () => deleteEvent(ev));
-
-      // click abre details (igual feeling original)
-      node.addEventListener("click", (e) => {
-        if (e.target.closest("button")) return;
-        openDetails(ev);
-      });
-
-      listEl.appendChild(node);
-    }
-  }
-
-  function openDetails(ev) {
-    if (!detailDialog) return;
-
-    detailTitle.textContent = ev.name || "Event details";
-    detailDesc.textContent = ev.description || "";
-
-    detailCollection.textContent = ev.collection_id ? String(ev.collection_id) : "";
-    detailDate.textContent = ev.date ? String(ev.date).slice(0,10) : "";
-    detailLocation.textContent = ev.location || "";
-    detailRating.textContent = ev.rating ? String(ev.rating) : "";
-
-    if (ev.image) {
-      detailImage.src = resolveAssetUrl(ev.image);
-      detailImage.style.display = "block";
-      detailImage.alt = ev.name || "";
     } else {
-      detailImage.style.display = "none";
+      el.title = 'Grades can be given after the date';
     }
 
-    detailDialog.showModal();
+    wrap.appendChild(el);
   }
+  return wrap;
+}
 
-  async function deleteEvent(ev) {
-    const id = ev.event_id;
-    if (!id) return;
-    if (!confirm("Delete this event?")) return;
+/* =======================
+   6) FORM (Create/Edit)
+   ======================= */
+function openForm(id = null) {
+  formError.textContent = '';
 
-    try {
-      const fd = new FormData();
-      fd.append("action", "delete");
-      fd.append("id", String(id));
-      await apiPostJson(EVENTS_ENDPOINT, fd);
-      toast("Event deleted.", "success");
-      await loadEvents();
-    } catch (e) {
-      console.error(e);
-      toast(String(e.message || e), "error");
-    }
-  }
-
-  async function loadCollectionsIntoSelect() {
-    if (!selCollection) return;
-
-    selCollection.innerHTML = `<option value="">-- Select collection --</option>`;
-
-    if (params.collectionId) {
-      try {
-        const col = await apiGetJson(`${COLLECTIONS_ENDPOINT}?id=${encodeURIComponent(params.collectionId)}&t=${Date.now()}`);
-        const c = col.collection || {};
-        const opt = document.createElement("option");
-        opt.value = String(params.collectionId);
-        opt.textContent = c.name ? c.name : `Collection ${params.collectionId}`;
-        selCollection.appendChild(opt);
-        selCollection.value = String(params.collectionId);
-        selCollection.disabled = true;
-      } catch {
-        const opt = document.createElement("option");
-        opt.value = String(params.collectionId);
-        opt.textContent = `Collection ${params.collectionId}`;
-        selCollection.appendChild(opt);
-        selCollection.value = String(params.collectionId);
-        selCollection.disabled = true;
-      }
+  if (id) {
+    // EDIT EXISTING EVENT
+    const ev = events.find(e => e.id == id);
+    if (!ev) {
+      alert('Could not find event data.');
       return;
     }
 
-    try {
-      const json = await apiGetJson(`${COLLECTIONS_ENDPOINT}?t=${Date.now()}`);
-      const arr = json.collections || [];
-      for (const c of arr) {
-        const opt = document.createElement("option");
-        opt.value = String(c.collection_id);
-        opt.textContent = c.name ? c.name : `Collection ${c.collection_id}`;
-        selCollection.appendChild(opt);
-      }
-      selCollection.disabled = false;
-    } catch (e) {
-      console.error(e);
-    }
+    editingId = id;
+    formTitle.textContent = 'Edit event';
+
+    if (fCollection) fCollection.value = ev.collection_id ?? '';
+    if (fName)       fName.value       = ev.name || '';
+    if (fLocation)   fLocation.value   = ev.location || '';
+    if (fDate)       fDate.value       = ev.date || '';
+    if (fDesc)       fDesc.value       = ev.description || '';
+
+    if (imageRow) imageRow.style.display = '';
+  } else {
+    // NEW EVENT
+    editingId = null;
+    form.reset();
+    formTitle.textContent = 'New event';
+    if (imageRow) imageRow.style.display = '';
   }
 
-  async function loadEvents() {
-    const t = Date.now();
-
-    if (params.collectionId) {
-      // tenta os nomes mais comuns
-      const tries = [
-        `${EVENTS_ENDPOINT}?collection_id=${encodeURIComponent(params.collectionId)}&t=${t}`,
-        `${EVENTS_ENDPOINT}?c=${encodeURIComponent(params.collectionId)}&t=${t}`,
-        `${EVENTS_ENDPOINT}?collection=${encodeURIComponent(params.collectionId)}&t=${t}`,
-      ];
-
-      let lastErr = null;
-      for (const u of tries) {
-        try {
-          const json = await apiGetJson(u);
-          const arr = json.events || json.data || json.items || [];
-          cached = (Array.isArray(arr) ? arr : []).map(normalizeEvent);
-          render(cached);
-          return;
-        } catch (e) {
-          lastErr = e;
-        }
-      }
-      throw lastErr || new Error("Could not load events");
+  loadCollections().then(() => {
+    // ✅ FIX: se tiver ?c=ID, preseleciona no form
+    const cid = getCollectionIdFromUrl();
+    if (cid && fCollection && !editingId) {
+      const opt = Array.from(fCollection.options).find(o => String(o.value) === String(cid));
+      if (opt) fCollection.value = String(cid);
     }
-
-    const json = await apiGetJson(`${EVENTS_ENDPOINT}?t=${t}`);
-    const arr = json.events || json.data || json.items || [];
-    cached = (Array.isArray(arr) ? arr : []).map(normalizeEvent);
-    render(cached);
-  }
-
-  async function submitForm(e) {
-    e.preventDefault();
-    formErr.textContent = "";
-
-    const collectionVal = selCollection ? String(selCollection.value || "").trim() : "";
-    const name = (inpName.value || "").trim();
-    const location = (inpLoc.value || "").trim();
-    const date = (inpDate.value || "").trim();
-    const description = (inpDesc.value || "").trim();
-
-    if (!collectionVal) return (formErr.textContent = "Collection is required.");
-    if (!name) return (formErr.textContent = "Name is required.");
-    if (!location) return (formErr.textContent = "Location is required.");
-    if (!date) return (formErr.textContent = "Date is required.");
-
-    try {
-      const fd = new FormData();
-      fd.append("action", mode === "edit" ? "update" : "create");
-
-      // compat
-      fd.append("collection", collectionVal);
-      fd.append("collection_id", collectionVal);
-
-      if (mode === "edit" && editingId) {
-        fd.append("id", String(editingId));
-        fd.append("event_id", String(editingId));
-      }
-
-      fd.append("name", name);
-      fd.append("location", location);
-      fd.append("date", date);
-      fd.append("description", description);
-
-      if (inpImg && inpImg.files && inpImg.files[0]) {
-        fd.append("image", inpImg.files[0]);
-      }
-
-      await apiPostJson(EVENTS_ENDPOINT, fd);
-      toast(mode === "edit" ? "Event updated." : "Event created.", "success");
-
-      closeDialog();
-      await loadEvents();
-    } catch (err) {
-      console.error(err);
-      formErr.textContent = String(err.message || err);
-    }
-  }
-
-  function wireFilters() {
-    filterComing?.addEventListener("click", () => { currentFilter = "coming"; render(cached); });
-    filterPast?.addEventListener("click", () => { currentFilter = "past"; render(cached); });
-    filterAll?.addEventListener("click", () => { currentFilter = "all"; render(cached); });
-  }
-
-  document.addEventListener("DOMContentLoaded", async () => {
-    try {
-      await loadCollectionsIntoSelect();
-      wireFilters();
-
-      btnNew?.addEventListener("click", openCreate);
-      btnCancel?.addEventListener("click", closeDialog);
-      detailClose?.addEventListener("click", () => detailDialog.close());
-      form?.addEventListener("submit", submitForm);
-
-      await loadEvents();
-
-      if ((params.open || "").toLowerCase() === "create") openCreate();
-    } catch (e) {
-      console.error(e);
-      toast(String(e.message || e), "error");
-    }
+    dialog.showModal();
   });
-})();
+}
+
+cancelBtn.addEventListener('click', () => {
+  dialog.close();
+});
+
+// ✅ FIX: SUBMIT manda collection_id também (seu PHP exige)
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  formError.textContent = '';
+
+  const formData = new FormData(form);
+
+  // valor do select (name="collection")
+  const cid = (fCollection?.value || '').toString().trim() || getCollectionIdFromUrl();
+
+  if (!cid) {
+    formError.textContent = 'Select a collection.';
+    return;
+  }
+
+  // ✅ FIX CRÍTICO:
+  // Mantém "collection" (compatível com seu HTML)
+  // e adiciona "collection_id" (compatível com seu PHP)
+  formData.set('collection', cid);
+  formData.set('collection_id', cid);
+
+  if (editingId !== null) {
+    formData.set('action', 'update');
+    formData.set('id', editingId);
+  } else {
+    formData.set('action', 'create');
+  }
+
+  try {
+    const res = await fetch('events_api.php', {
+      method: 'POST',
+      body: formData
+    });
+
+    const data = await res.json();
+
+    if (!data.success) {
+      // mantém mensagem do backend (ex: collection_id inválido)
+      formError.textContent = data.error || 'Error saving event.';
+      return;
+    }
+
+    dialog.close();
+    await loadEvents();
+  } catch (err) {
+    console.error('Error saving event:', err);
+    formError.textContent = 'Unexpected error saving event.';
+  }
+});
+
+async function delEvent(id) {
+  const confirmed = confirm('Do you really want to delete this event?');
+  if (!confirmed) return;
+
+  const formData = new FormData();
+  formData.append('action', 'delete');
+  formData.append('id', id);
+
+  try {
+    const res = await fetch('events_api.php', {
+      method: 'POST',
+      body: formData
+    });
+
+    const data = await res.json();
+
+    if (!data.success) {
+      alert('Error deleting event: ' + (data.error || 'Unknown error'));
+      return;
+    }
+
+    await loadEvents();
+  } catch (err) {
+    console.error('Error deleting event:', err);
+    alert('Unexpected error deleting event.');
+  }
+}
+
+/* =======================
+   8) FILTER BUTTONS
+   ======================= */
+filterComing.addEventListener('click', () => { filter = 'coming'; render(); });
+filterPast.addEventListener('click', () => { filter = 'past'; render(); });
+filterAll.addEventListener('click', () => { filter = 'all'; render(); });
+
+/* =======================
+   9) NEW EVENT
+   ======================= */
+newEvent.addEventListener('click', () => openForm(null));
+
+/* =======================
+   10) LOAD EVENTS FROM BACKEND
+   ======================= */
+async function loadEvents() {
+  try {
+    const cid = getCollectionIdFromUrl();
+
+    // ✅ FIX: se tiver ?c=, tenta carregar eventos só dessa coleção
+    // (sem mudar visual; só melhora o filtro do backend)
+    let url = 'events_api.php';
+    if (cid) url = `events_api.php?collection_id=${encodeURIComponent(cid)}`;
+
+    const res = await fetch(url, { cache: 'no-store', credentials: 'same-origin' });
+    const data = await res.json();
+
+    if (!data.success) {
+      console.error('Error from API:', data.error);
+      return;
+    }
+
+    events = data.events || [];
+    render();
+  } catch (err) {
+    console.error('Error loading events:', err);
+  }
+}
+
+// LOAD COLLECTIONS FROM BACKEND (dropdown)
+async function loadCollections() {
+  try {
+    // ✅ Mantive seu endpoint como estava no original.
+    // Se no seu projeto o correto for collection_api.php (lista),
+    // troque aqui para o arquivo que realmente existe.
+    const res = await fetch('collections_api.php', { cache: 'no-store', credentials: 'same-origin' });
+    const data = await res.json();
+
+    if (!data.success) {
+      console.error('Error loading collections:', data.error);
+      return;
+    }
+
+    fCollection.innerHTML = '<option value="">-- Select collection --</option>';
+
+    data.collections.forEach(col => {
+      const option = document.createElement('option');
+      option.value = col.collection_id;
+      option.textContent = col.name;
+      fCollection.appendChild(option);
+    });
+  } catch (err) {
+    console.error('Network error loading collections:', err);
+  }
+}
+
+// Inicia
+loadEvents().then(async () => {
+  // carrega dropdown e, se a URL pedir, abre o create
+  await loadCollections();
+  if (shouldOpenCreateFromUrl()) openForm(null);
+});
