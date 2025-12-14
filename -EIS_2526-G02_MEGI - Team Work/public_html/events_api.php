@@ -1,220 +1,194 @@
 <?php
+declare(strict_types=1);
+
 header('Content-Type: application/json; charset=utf-8');
+session_start();
 
-// 1. Inkludera anslutningen (ger oss $pdo)
 require 'conexao.php';
-
-// 2. Inkludera det nya DAL-lagret
 require 'EventDAL.php';
 
-// 3. Initiera DAL-klassen
 $eventDal = new EventDAL($pdo);
-
-// Hämta inloggat användar-ID från sessionen
 $currentUserId = $_SESSION['user_id'] ?? null;
 
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // === DELETE EVENT (Använder DAL) ===
-    if (isset($_POST['action']) && $_POST['action'] === 'delete') {
-
-        $id = $_POST['id'] ?? null;
-        if ($id === null) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Missing event ID']);
-            exit;
-        }
-
-        // Här skulle du lägga in din BEHÖRIGHETSKONTROLL (Kritiskt för Sprint 2)
-        // if (!hasPermissionToEditEvent($id, $currentUser)) { ... }
-        if (!$currentUserId) {
-            http_response_code(401);
-            echo json_encode(['success' => false, 'error' => 'Not authenticated.']);
-            exit;
-        }
-
-        $ownerId = $eventDal->getEventOwnerId((int)$id); // KRÄVER NY METOD I DAL!
-
-        if ($ownerId === null || $ownerId !== $currentUserId) {
-            http_response_code(403); // Forbidden
-            echo json_encode(['success' => false, 'error' => 'Permission denied. You are not the owner of this event.']);
-            exit;
-        }
-        
-        try {
-            // ANROP TILL DAL
-            $eventDal->deleteEvent($id);
-
-            echo json_encode(['success' => true]);
-            exit;
-
-        } catch (Exception $e) {
-            http_response_code(500);
-            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
-            exit;
-        }
-    }
-    
-    // === UPDATE EVENT (Använder DAL) ===
-    if (isset($_POST['action']) && $_POST['action'] === 'update') {
-
-        $id          = $_POST['id']          ?? null;
-        $collection  = $_POST['collection']  ?? '';
-        $name        = $_POST['name']        ?? '';
-        $location    = $_POST['location']    ?? '';
-        $date        = $_POST['date']        ?? '';
-        $description = $_POST['description'] ?? '';
-
-        if ($id === null || trim($collection) === '' || trim($name) === '' || 
-            trim($location) === '' || trim($date) === '' || trim($description) === ''
-        ) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Missing required fields for update']);
-            exit;
-        }
-
-
-        if (!$currentUserId) {
-            http_response_code(401);
-            echo json_encode(['success' => false, 'error' => 'Not authenticated.']);
-            exit;
-        }
-
-        $ownerId = $eventDal->getEventOwnerId((int)$id); // KRÄVER NY METOD I DAL!
-
-        if ($ownerId === null || $ownerId !== $currentUserId) {
-            http_response_code(403); // Forbidden
-            echo json_encode(['success' => false, 'error' => 'Permission denied. You are not the owner of this event.']);
-            exit;
-        }
-        $collection_id = (int)$collection;
-
-        try {
-            // ANROP TILL DAL
-            $eventDal->updateEvent($id, $collection_id, $name, $location, $date, $description);
-
-            echo json_encode(['success' => true]);
-            exit;
-
-        } catch (Exception $e) {
-            http_response_code(500);
-            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
-            exit;
-        }
-    }
-    
-    //rating
-    if (isset($_POST['action']) && $_POST['action'] === 'rate') {
-        $id     = $_POST['id']     ?? null;
-        $rating = $_POST['rating'] ?? null;
-
-        if ($id === null || $rating === null || !is_numeric($rating) || $rating < 1 || $rating > 5) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Invalid event ID or rating value.']);
-            exit;
-        }
-
-        // 1. Autentisering (Endast inloggade får betygsätta)
-        if (!$currentUserId) {
-            http_response_code(401);
-            echo json_encode(['success' => false, 'error' => 'Not authenticated.']);
-            exit;
-        }
-
-        // OBS! Vi hoppar över ägarkontroll för Rating (alla inloggade får betygsätta)
-        
-        try {
-            // ANROP TILL DAL
-            $eventDal->updateEventRating((int)$id, (int)$rating);
-
-            echo json_encode(['success' => true]);
-            exit;
-
-        } catch (Exception $e) {
-            http_response_code(500);
-            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
-            exit;
-        }
-    }
-
-
-    // === CREATE EVENT (Använder DAL) ===
-    $collection  = $_POST['collection']  ?? '';
-    $name        = $_POST['name']        ?? '';
-    $location    = $_POST['location']    ?? '';
-    $date        = $_POST['date']        ?? '';
-    $description = $_POST['description'] ?? '';
-
-    // Validering
-    if (trim($collection) === '' || trim($name) === '' || trim($location) === '' || 
-        trim($date) === '' || trim($description) === ''
-    ) {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'error' => 'Missing required fields']);
-        exit;
-    }
-    
-    if (!$currentUserId) {
-        http_response_code(401);
-        echo json_encode(['success' => false, 'error' => 'Not authenticated.']);
-        exit;
-    }
-
-    // KRITISK KONTROLL: Måste äga samlingen för att skapa event i den!
-    $collection_id = (int)$collection;
-    
-    // KRÄVER NY METOD I DAL!
-    if (!$eventDal->checkIfUserOwnsCollection($currentUserId, $collection_id)) { 
-        http_response_code(403);
-        echo json_encode(['success' => false, 'error' => 'Permission denied. You do not own this collection.']);
-        exit;
-    }
-    
-    $collection_id = (int)$collection;
-    $imagePath = null;
-
-    // Här skulle du lägga in din BEHÖRIGHETSKONTROLL: 
-    // Måste ha behörighet att lägga till i denna collection (Kritiskt för Sprint 2)
-
-    // Ladda upp bild (Affärslogik, inte en DAL-uppgift)
-    if (!empty($_FILES['image']['name'])) {
-        $uploadDir = 'uploads/';
-        if (!is_dir($uploadDir)) { mkdir($uploadDir, 0777, true); }
-        $fileName = time() . '_' . basename($_FILES['image']['name']);
-        $targetPath = $uploadDir . $fileName;
-        if (move_uploaded_file($_FILES['image']['tmp_name'], $targetPath)) {
-            $imagePath = $targetPath;
-        }
-    }
-
-    try {
-        // ANROP TILL DAL
-        $newId = $eventDal->createEvent($collection_id, $name, $location, $date, $description, $imagePath);
-
-        echo json_encode(['success' => true, 'id' => $newId]);
-        exit;
-
-    } catch (Exception $e) {
-        http_response_code(500);
-        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
-        exit;
-    }
+/**
+ * Outputs JSON and exits.
+ */
+function json_out(array $data, int $code = 200): void {
+    http_response_code($code);
+    echo json_encode($data, JSON_UNESCAPED_UNICODE);
+    exit;
 }
 
-// === GET EVENTS (Använder DAL) ===
+/**
+ * Safely saves an uploaded image file and returns the saved path (relative).
+ *
+ * English notes:
+ * - This stores files under /uploads/
+ * - It validates basic "is image" + extension
+ * - DB stores only the relative path (varchar)
+ */
+function handle_image_upload(string $fieldName = 'image'): ?string {
+    if (empty($_FILES[$fieldName]) || empty($_FILES[$fieldName]['name'])) {
+        return null;
+    }
+
+    if (!isset($_FILES[$fieldName]['tmp_name']) || !is_uploaded_file($_FILES[$fieldName]['tmp_name'])) {
+        return null;
+    }
+
+    $tmp  = $_FILES[$fieldName]['tmp_name'];
+    $name = $_FILES[$fieldName]['name'];
+
+    // Basic MIME validation
+    $info = @getimagesize($tmp);
+    if ($info === false) {
+        return null; // Not an image
+    }
+
+    $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+    $allowed = ['jpg','jpeg','png','gif','webp'];
+    if (!in_array($ext, $allowed, true)) {
+        return null;
+    }
+
+    $uploadDir = __DIR__ . DIRECTORY_SEPARATOR . 'uploads';
+    if (!is_dir($uploadDir)) {
+        mkdir($uploadDir, 0777, true);
+    }
+
+    // Unique filename
+    $safeBase = preg_replace('/[^a-zA-Z0-9_\-\.]/', '_', basename($name));
+    $fileName = time() . '_' . $safeBase;
+
+    $targetAbs = $uploadDir . DIRECTORY_SEPARATOR . $fileName;
+    $targetRel = 'uploads/' . $fileName;
+
+    if (!move_uploaded_file($tmp, $targetAbs)) {
+        return null;
+    }
+
+    return $targetRel;
+}
+
+/**
+ * POST: action=create|update|delete|rate
+ * GET:  list events
+ */
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    // Auth required for all POST actions
+    if (!$currentUserId) {
+        json_out(['success' => false, 'error' => 'Not authenticated.'], 401);
+    }
+
+    $action = $_POST['action'] ?? 'create';
+
+    // =========================
+    // DELETE
+    // =========================
+    if ($action === 'delete') {
+        $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
+        if ($id <= 0) {
+            json_out(['success' => false, 'error' => 'Missing or invalid event ID'], 400);
+        }
+
+        // Owner check
+        $ownerId = $eventDal->getEventOwnerId($id);
+        if ($ownerId === null || $ownerId !== (int)$currentUserId) {
+            json_out(['success' => false, 'error' => 'Permission denied. You are not the owner of this event.'], 403);
+        }
+
+        $eventDal->deleteEvent($id);
+        json_out(['success' => true]);
+    }
+
+    // =========================
+    // RATE
+    // =========================
+    if ($action === 'rate') {
+        $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
+        $rating = isset($_POST['rating']) ? (int)$_POST['rating'] : 0;
+
+        if ($id <= 0 || $rating < 1 || $rating > 5) {
+            json_out(['success' => false, 'error' => 'Invalid event ID or rating value.'], 400);
+        }
+
+        // Rating does not require ownership (any authenticated user can rate)
+        $eventDal->updateEventRating($id, $rating);
+        json_out(['success' => true]);
+    }
+
+    // =========================
+    // UPDATE
+    // =========================
+    if ($action === 'update') {
+        $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
+        $collection = trim((string)($_POST['collection'] ?? ''));
+        $name = trim((string)($_POST['name'] ?? ''));
+        $location = trim((string)($_POST['location'] ?? ''));
+        $date = trim((string)($_POST['date'] ?? ''));
+        $description = trim((string)($_POST['description'] ?? ''));
+
+        if ($id <= 0 || $collection === '' || $name === '' || $location === '' || $date === '' || $description === '') {
+            json_out(['success' => false, 'error' => 'Missing required fields for update'], 400);
+        }
+
+        $ownerId = $eventDal->getEventOwnerId($id);
+        if ($ownerId === null || $ownerId !== (int)$currentUserId) {
+            json_out(['success' => false, 'error' => 'Permission denied. You are not the owner of this event.'], 403);
+        }
+
+        $collectionId = (int)$collection;
+
+        // Optional new image upload
+        $imagePath = handle_image_upload('image');
+        if ($imagePath !== null) {
+            // If you want image updates on update, you need a DAL method.
+            // Keeping it simple: update basic fields only (like your current DAL).
+            // You can add updateEventWithImage(...) later if needed.
+        }
+
+        $eventDal->updateEvent($id, $collectionId, $name, $location, $date, $description);
+        json_out(['success' => true]);
+    }
+
+    // =========================
+    // CREATE (default)
+    // =========================
+    if ($action === 'create') {
+        $collection = trim((string)($_POST['collection'] ?? ''));
+        $name = trim((string)($_POST['name'] ?? ''));
+        $location = trim((string)($_POST['location'] ?? ''));
+        $date = trim((string)($_POST['date'] ?? ''));
+        $description = trim((string)($_POST['description'] ?? ''));
+
+        if ($collection === '' || $name === '' || $location === '' || $date === '' || $description === '') {
+            json_out(['success' => false, 'error' => 'Missing required fields'], 400);
+        }
+
+        $collectionId = (int)$collection;
+
+        // Ownership check: must own the collection to create events inside it
+        if (!$eventDal->checkIfUserOwnsCollection((int)$currentUserId, $collectionId)) {
+            json_out(['success' => false, 'error' => 'Permission denied. You do not own this collection.'], 403);
+        }
+
+        $imagePath = handle_image_upload('image'); // <-- this is what your collection page now sends
+
+        $newId = $eventDal->createEvent($collectionId, $name, $location, $date, $description, $imagePath);
+
+        json_out(['success' => true, 'id' => $newId]);
+    }
+
+    json_out(['success' => false, 'error' => 'Invalid action'], 400);
+}
+
+// =========================
+// GET: list events
+// =========================
 try {
-    // ANROP TILL DAL
     $events = $eventDal->getAllEvents();
-
-    echo json_encode([
-        'success' => true,
-        'events'  => $events,
-    ]);
-
-} catch (Exception $e) {
-    http_response_code(500);
-    echo json_encode([
-        'success' => false,
-        'error'   => $e->getMessage(),
-    ]);
+    json_out(['success' => true, 'events' => $events]);
+} catch (Throwable $e) {
+    json_out(['success' => false, 'error' => $e->getMessage()], 500);
 }

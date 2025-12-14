@@ -1,14 +1,10 @@
 (function () {
-  const PAGE = document.body.getAttribute('data-page'); // opcional
+  const API = 'collections_api.php';
 
   // Elements
   const listSection = document.querySelector('#collections-list');
-  const titleEl     = listSection?.querySelector('h2');
+  const titleEl = listSection?.querySelector('h2');
 
-  // "See More" pode ser:
-  // - um <a> dentro da section
-  // - um botão
-  // - um link com data-nav="collections"
   const seeMoreEl =
     listSection?.querySelector('.see-more') ||
     listSection?.querySelector('a.see-more') ||
@@ -16,30 +12,16 @@
     listSection?.querySelector('a[href="#"]') ||
     null;
 
-  const createBtn   = document.querySelector('#create-collection');
-  const statsBar    = document.querySelector('#stats');
-  const loginInfo   = document.querySelector('#login-info');
-
-  // Seed (fallback REAL)
-  const seedData = [
-    { id: 1, title: 'Collection 1', desc: 'Some description about the collection...', img: 'https://picsum.photos/600/400?1' },
-    { id: 2, title: 'Collection 2', desc: 'Some description about the collection...', img: 'https://picsum.photos/600/400?2' },
-    { id: 3, title: 'Collection 3', desc: 'Some description about the collection...', img: 'https://picsum.photos/600/400?3' },
-    { id: 4, title: 'Collection 4', desc: 'Some description about the collection...', img: 'https://picsum.photos/600/400?4' },
-    { id: 5, title: 'Collection 5', desc: 'Some description about the collection...', img: 'https://picsum.photos/600/400?5' },
-    { id: 6, title: 'Collection 6', desc: 'Extra to demo See More…', img: 'https://picsum.photos/600/400?6' },
-    { id: 7, title: 'Collection 7', desc: 'Extra to demo See More…', img: 'https://picsum.photos/600/400?7' },
-  ];
+  const createBtn = document.querySelector('#create-collection');
 
   const state = {
     collections: [],
     pageSize: 5,
     page: 1,
-    loading: false,
-    serverLoaded: false
+    serverLoaded: false,
+    loading: false
   };
 
-  // ---------------- Helpers de UI ----------------
   function clearRendered() {
     if (!listSection) return;
     [...listSection.children].forEach(el => {
@@ -47,10 +29,27 @@
     });
   }
 
+  function normalizeImageUrl(imgPathOrUrl) {
+    if (!imgPathOrUrl) return null;
+
+    // Já é URL completa
+    if (/^https?:\/\//i.test(imgPathOrUrl)) return imgPathOrUrl;
+
+    // Caminho relativo vindo do PHP (ex: uploads/collections/abc.jpg)
+    // Resolve corretamente mesmo se a página estiver em subpasta
+    return new URL(imgPathOrUrl, window.location.href).toString();
+  }
+
   function createCard({ id, title, desc, img }) {
     const card = document.createElement('div');
     card.className = 'collection-item';
-    card.dataset.id = id;
+    card.dataset.id = String(id);
+
+    const del = document.createElement('button');
+    del.className = 'delete-btn';
+    del.type = 'button';
+    del.title = 'Delete';
+    del.textContent = '🗑 Delete';
 
     const image = document.createElement('img');
     image.src = img;
@@ -62,12 +61,6 @@
     const p = document.createElement('p');
     p.textContent = desc;
 
-    const del = document.createElement('button');
-    del.className = 'delete-btn';
-    del.type = 'button';
-    del.title = 'Delete';
-    del.textContent = '🗑 Delete';
-
     const link = document.createElement('a');
     link.href = `collection-page.html?id=${encodeURIComponent(id)}`;
     link.textContent = 'View Collection';
@@ -78,27 +71,26 @@
     return card;
   }
 
-  // ---------------- Integração com PHP ----------------
   function mapBackendCollection(c) {
     const backendId = c.collection_id ?? c.id ?? c.collectionId ?? null;
+
+    const imgResolved =
+      normalizeImageUrl(c.image || c.img) ||
+      `https://picsum.photos/seed/collection-${backendId}/600/400`;
 
     return {
       id: backendId,
       title: c.name || c.title || 'Untitled Collection',
       desc: c.description || c.desc || '',
-      img: c.image || c.img || (backendId
-        ? `https://picsum.photos/seed/collection-${backendId}/600/400`
-        : `https://picsum.photos/seed/collection-${Date.now()}/600/400`)
+      img: imgResolved
     };
   }
 
   async function fetchCollectionsFromServer() {
     state.loading = true;
-
     try {
-      const res = await fetch('collections_api.php', { credentials: 'same-origin' });
+      const res = await fetch(API, { credentials: 'same-origin' });
 
-      // Se não estiver logado, backend deve devolver 401
       if (res.status === 401) {
         window.location.href = 'Homepage.logout.html';
         return;
@@ -107,31 +99,19 @@
       if (!res.ok) throw new Error('HTTP ' + res.status);
 
       const data = await res.json();
-
-      // nosso backend retorna {success:true, collections:[...]}
       if (!data || data.success !== true) {
-        throw new Error((data && data.error) ? data.error : 'Could not load collections');
+        throw new Error(data?.error || 'Could not load collections');
       }
 
       const arr = Array.isArray(data.collections) ? data.collections : [];
-      const mapped = arr.map(mapBackendCollection).filter(x => x.id != null);
-
-      state.collections = mapped;
+      state.collections = arr.map(mapBackendCollection).filter(x => x.id != null);
       state.serverLoaded = true;
-
-      // Se veio vazio, NÃO inventa seed se isso for seu comportamento desejado.
-      // (Se você preferir mostrar seed quando vazio, descomente abaixo)
-      if (!state.collections.length) {
-        // state.collections = seedData.slice();
-      }
 
     } catch (err) {
       console.error('[home] fetchCollectionsFromServer failed', err);
-
-      // fallback só se realmente falhar
-      if (!state.collections.length) {
-        state.collections = seedData.slice();
-      }
+      alert('Erro ao carregar coleções do servidor. Veja o Console (F12).');
+      state.collections = [];
+      state.serverLoaded = true;
     } finally {
       state.loading = false;
     }
@@ -142,13 +122,13 @@
 
     const forceReload = !!options.forceReload;
 
-    if (forceReload || (!state.serverLoaded && !state.collections.length)) {
+    if (forceReload || !state.serverLoaded) {
       await fetchCollectionsFromServer();
     }
 
     clearRendered();
 
-    const end    = state.page * state.pageSize;
+    const end = state.page * state.pageSize;
     const toShow = state.collections.slice(0, end);
 
     toShow.forEach(item => {
@@ -161,7 +141,7 @@
     }
   }
 
-  // =============== MODAL "CREATE NEW COLLECTION" (integrado com PHP) ===============
+  // ===== MODAL CREATE (com upload de arquivo) =====
   function openCreateCollectionModal() {
     const overlay = document.createElement('div');
     Object.assign(overlay.style, {
@@ -192,7 +172,8 @@
           Fill the fields below to create a new collection.
         </p>
       </div>
-      <form style="padding:0 20px 16px;display:flex;flex-direction:column;gap:10px">
+
+      <form style="padding:0 20px 16px;display:flex;flex-direction:column;gap:10px" enctype="multipart/form-data">
         <div>
           <label style="display:block;font-weight:600;margin-bottom:4px">Name *</label>
           <input name="name" type="text" required
@@ -207,22 +188,22 @@
 
         <div>
           <label style="display:block;font-weight:600;margin-bottom:4px">Creation date</label>
-          <input name="dateCreated" type="date"
+          <input name="creation_date" type="date"
             style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border,#ddd)">
         </div>
 
         <div>
           <label style="display:block;font-weight:600;margin-bottom:4px">Description</label>
-          <textarea name="desc" rows="3"
+          <textarea name="description" rows="3"
             style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border,#ddd);resize:vertical"></textarea>
         </div>
 
         <div>
-          <label style="display:block;font-weight:600;margin-bottom:4px">Banner image URL</label>
-          <input name="img" type="url" placeholder="https://..."
-            style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border,#ddd)">
+          <label style="display:block;font-weight:600;margin-bottom:4px">Image (from your computer)</label>
+          <input name="image" type="file" accept="image/*"
+            style="width:100%;padding:6px">
           <small style="display:block;margin-top:4px;opacity:.7">
-            If empty, a random image will be used.
+            JPG/PNG/WEBP (optional)
           </small>
         </div>
 
@@ -253,30 +234,21 @@
     formCol.addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      const fd = new FormData(formCol);
-      const name = (fd.get('name') || '').toString().trim();
-      if (!name) { alert('Name is required.'); return; }
-
-      const type = (fd.get('type') || '').toString().trim();
-      const dateCreated =
-        (fd.get('dateCreated') || '').toString() ||
-        new Date().toISOString().slice(0, 10);
-      const desc = (fd.get('desc') || '').toString().trim();
-      const imgInput = (fd.get('img') || '').toString().trim();
-
-      const fallbackImg = 'https://picsum.photos/seed/collection-' + Date.now() + '/1200/600';
-      const img = imgInput || fallbackImg;
-
-      const payload = new FormData();
+      const payload = new FormData(formCol);
       payload.append('action', 'create');
-      payload.append('name', name);
-      payload.append('type', type);
-      payload.append('creation_date', dateCreated);
-      payload.append('description', desc);
-      payload.append('image', img);
+
+      const name = (payload.get('name') || '').toString().trim();
+      if (!name) {
+        alert('Name is required.');
+        return;
+      }
+
+      // Se data vazia, preenche hoje (compatível com seu DB)
+      const cd = (payload.get('creation_date') || '').toString().trim();
+      if (!cd) payload.set('creation_date', new Date().toISOString().slice(0, 10));
 
       try {
-        const res = await fetch('collections_api.php', {
+        const res = await fetch(API, {
           method: 'POST',
           body: payload,
           credentials: 'same-origin'
@@ -287,23 +259,17 @@
           return;
         }
 
-        const result = await res.json();
-
-        if (!result || !result.success) {
-          alert((result && result.error) ? result.error : 'Erro ao criar coleção.');
+        const data = await res.json();
+        if (!data || !data.success) {
+          alert(data?.error || 'Erro ao criar coleção.');
           return;
         }
 
         close();
 
-        // ✅ aqui você escolhe: ir pra collection page OU ficar na home e recarregar
-        // 1) ir direto:
-        const redirectUrl = result.redirect_url || `collection-page.html?id=${encodeURIComponent(result.collection_id)}`;
-        window.location.href = redirectUrl;
-
-        // 2) OU recarregar na home (comente o window.location acima e descomente abaixo):
-        // state.page = 1;
-        // await render({ forceReload: true });
+        // ✅ recarrega da base (assim você vê que salvou mesmo)
+        state.page = 1;
+        await render({ forceReload: true });
 
       } catch (err) {
         console.error(err);
@@ -312,7 +278,7 @@
     });
   }
 
-  // --------- Interações ----------
+  // Create button
   if (createBtn) {
     createBtn.addEventListener('click', (e) => {
       e.preventDefault();
@@ -320,16 +286,14 @@
     });
   }
 
-  // "See More" vira paginação apenas se você quiser.
-  // Se esse link for usado pelo nav.js pra navegar de página, o preventDefault pode atrapalhar.
-  // Aqui eu só pagino se o link for "#" OU tiver a classe .see-more.
+  // See more local pagination
   if (seeMoreEl) {
     seeMoreEl.addEventListener('click', (e) => {
       const isPager =
         (seeMoreEl.tagName === 'A' && (seeMoreEl.getAttribute('href') === '#' || seeMoreEl.classList.contains('see-more'))) ||
         seeMoreEl.tagName === 'BUTTON';
 
-      if (!isPager) return; // deixa o nav.js navegar normalmente
+      if (!isPager) return;
 
       if (seeMoreEl.tagName === 'A') e.preventDefault();
       state.page += 1;
@@ -337,9 +301,9 @@
     });
   }
 
-  // Delete (só front-end)
+  // ✅ DELETE REAL (backend) + reload
   if (listSection) {
-    listSection.addEventListener('click', (e) => {
+    listSection.addEventListener('click', async (e) => {
       const btn = e.target.closest('.delete-btn');
       if (!btn) return;
 
@@ -350,47 +314,38 @@
       const ok = confirm('Are you sure you want to delete this collection?');
       if (!ok) return;
 
-      state.collections = state.collections.filter(c => Number(c.id) !== id);
+      try {
+        const fd = new FormData();
+        fd.append('action', 'delete');
+        fd.append('collection_id', id);
 
-      const maxPage = Math.max(1, Math.ceil(state.collections.length / state.pageSize));
-      if (state.page > maxPage) state.page = maxPage;
+        const res = await fetch(API, {
+          method: 'POST',
+          body: fd,
+          credentials: 'same-origin'
+        });
 
-      render();
-    });
-  }
+        if (res.status === 401) {
+          window.location.href = 'Homepage.logout.html';
+          return;
+        }
 
-  // Stats demo
-  if (statsBar) {
-    statsBar.addEventListener('click', (e) => {
-      if (e.target.tagName !== 'BUTTON') return;
-      const label = e.target.textContent.trim();
-      if (label.includes('Collections Total')) {
-        alert(`Total collections: ${state.collections.length}`);
-      } else if (label.includes('Items Total')) {
-        alert(`Approx items total: ~${state.collections.length * 20}`);
-      } else if (label.includes('Community Review')) {
-        alert('Community Review: ★★★★☆ (prototype)');
-      } else if (label.includes('Average Rating')) {
-        alert('Average Rating: 4.2 (prototype)');
+        const data = await res.json();
+        if (!data || !data.success) {
+          alert(data?.error || 'Erro ao deletar coleção.');
+          return;
+        }
+
+        state.page = 1;
+        await render({ forceReload: true });
+
+      } catch (err) {
+        console.error(err);
+        alert('Erro inesperado ao deletar coleção.');
       }
     });
   }
 
-  // Config / Profile demo
-  if (loginInfo) {
-    loginInfo.addEventListener('click', (e) => {
-      if (e.target.tagName !== 'BUTTON') return;
-      const label = e.target.textContent.trim();
-      if (label === 'Config') alert('Open settings');
-      else if (label === 'Profile') alert('Open profile');
-    });
-  }
-
-  async function init() {
-    if (PAGE === 'collections' || listSection) {
-      await render();
-    }
-  }
-
-  init();
+  // Boot
+  render({ forceReload: true });
 })();

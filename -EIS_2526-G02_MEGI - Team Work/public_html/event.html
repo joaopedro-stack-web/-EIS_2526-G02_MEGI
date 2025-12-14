@@ -25,12 +25,70 @@
       <button class="new-collection" data-nav="create" type="button">Create New Collection</button>
 
       <!-- Primary navigation (pages) -->
-      <nav class="nav">
-        <a class="nav-link" data-nav="collector"   href="#">Collector</a>
-        <a class="nav-link" data-nav="collections" href="#">Collections</a>
-        <a class="nav-link active" data-nav="events" href="#">Events</a>
-        <a class="nav-link" data-nav="community"   href="#">Community</a>
+      <!-- ✅ FIX: hrefs corretos + guard contra nav.js quebrando -->
+      <nav class="nav" id="event-sidebar-nav">
+        <a class="nav-link"
+           data-nav="collector"
+           href="Homepage.login.html">Collector</a>
+
+        <a class="nav-link"
+           data-nav="collections"
+           href="collection-page.html">Collections</a>
+
+        <a class="nav-link active"
+           data-nav="events"
+           href="event.html">Events</a>
+
+        <a class="nav-link"
+           data-nav="community"
+           href="Team_page2.html">Community</a>
       </nav>
+
+      <!-- ✅ Guard: se algum JS interceptar o clique e fizer merda, aqui garante o destino certo -->
+      <script>
+        (function () {
+          function hardFixSidebarLinks() {
+            const nav = document.getElementById('event-sidebar-nav');
+            if (!nav) return;
+
+            const map = {
+              collector: 'Homepage.login.html',
+              collections: 'collection-page.html',
+              events: 'event.html',
+              community: 'Team_page2.html'
+            };
+
+            // garante href certo
+            Object.keys(map).forEach((key) => {
+              const a = nav.querySelector('[data-nav="' + key + '"]');
+              if (a) a.setAttribute('href', map[key]);
+            });
+
+            // captura clique ANTES de qualquer outro handler e navega pro lugar certo
+            nav.addEventListener('click', function (e) {
+              const a = e.target.closest('a[data-nav]');
+              if (!a) return;
+
+              const key = a.getAttribute('data-nav');
+              if (!key || !map[key]) return;
+
+              // deixa abrir em nova aba funcionar
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
+
+              e.preventDefault();
+              e.stopImmediatePropagation();
+              window.location.href = map[key];
+            }, true);
+          }
+
+          // roda cedo e de novo depois do nav.js
+          hardFixSidebarLinks();
+          window.addEventListener('load', hardFixSidebarLinks);
+          setTimeout(hardFixSidebarLinks, 0);
+          setTimeout(hardFixSidebarLinks, 200);
+          setTimeout(hardFixSidebarLinks, 800);
+        })();
+      </script>
     </aside>
 
     <!-- Top bar with actions -->
