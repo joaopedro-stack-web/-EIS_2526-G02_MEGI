@@ -48,7 +48,7 @@ body {
 }
 
 /* =========================================================
-   LAYOUT (mesmo conceito da profile_page1: card central)
+   LAYOUT (card central)
    ========================================================= */
 .layout {
   max-width: 1400px;
@@ -57,39 +57,34 @@ body {
   background: var(--surface);
   border-radius: 18px;
   box-shadow: var(--shadow);
+
   display: grid;
   grid-template-areas:
     "header header"
     "sidebar main"
     "footer footer";
   grid-template-columns: 280px 1fr;
+
   gap: 20px;
   min-height: calc(100vh - 48px);
+
+  align-content: start;
 }
 
 /* Áreas */
-header {
-  grid-area: header;
-}
-aside {
-  grid-area: sidebar;
-}
-main {
-  grid-area: main;
-}
-footer {
-  grid-area: footer;
-}
+header { grid-area: header; }
+aside  { grid-area: sidebar; }
+main   { grid-area: main; }
+footer { grid-area: footer; }
 
 /* =========================================================
-   HEADER (Topbar) - mesmo “feeling” das outras páginas
+   HEADER (Topbar)
    ========================================================= */
 header {
   display: flex;
   align-items: center;
   justify-content: space-between;
 
-  /* Faz a topbar “grudar” nas bordas do card */
   margin: calc(-1 * var(--layout-pad)) calc(-1 * var(--layout-pad)) 0;
   padding: 10px 16px;
 
@@ -102,15 +97,19 @@ header {
   border-bottom: 1px solid #111111;
   border-radius: var(--radius) var(--radius) 0 0;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+
+  height: 56px;
+  min-height: 56px;
 }
 
 header h1 {
   margin: 0;
   font-size: 1.4rem;
   font-weight: 700;
+  line-height: 1;
 }
 
-/* Botão de Profile na topbar (mesma pegada do profile_page1) */
+/* Botão de Profile na topbar */
 #login-info button {
   display: inline-flex;
   align-items: center;
@@ -147,7 +146,7 @@ header h1 {
 }
 
 /* =========================================================
-   SIDEBAR (Left nav)
+   SIDEBAR
    ========================================================= */
 aside {
   position: sticky;
@@ -256,11 +255,26 @@ main {
   transform: translateY(-1px);
 }
 
-/* ---- Collections Grid ---- */
+/* =========================================================
+   COLLECTIONS GRID (✅ FIX: cards menores e organizados)
+   ========================================================= */
 #collections-list {
+  /* ✅ mantém grid das coleções */
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+
+  /* ✅ NÃO deixa card expandir demais */
+  grid-template-columns: repeat(auto-fit, minmax(240px, 280px));
+
+  /* ✅ alinha o grid à esquerda (como era antes) */
+  justify-content: start;
+
+  /* ✅ impede esticar altura dos itens */
+  align-items: start;
+
   gap: 24px;
+
+  /* ✅ dá “área” pra empurrar o See More pra baixo sem estourar card */
+  min-height: 62vh;
 }
 
 #collections-list > h2 {
@@ -271,38 +285,51 @@ main {
   color: var(--primary);
 }
 
+/* CARD */
 .collection-item {
+  width: 100%;
+  max-width: 280px;      /* ✅ trava o tamanho */
+  height: auto;          /* ✅ não estica */
+
   background: var(--surface);
   border-radius: var(--radius);
-  box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+  box-shadow: 0 3px 10px rgba(0,0,0,0.10);
   overflow: hidden;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+
+  position: relative; /* base do delete overlay */
+  align-self: start;  /* ✅ não estica na célula */
 }
 
 .collection-item:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+  transform: translateY(-4px);
+  box-shadow: 0 10px 24px rgba(0,0,0,0.14);
 }
 
+/* imagem do card menor e consistente */
 .collection-item img {
   width: 100%;
-  height: 200px;
+  height: 170px;          /* ✅ menor que antes */
   object-fit: cover;
+  display: block;
 }
 
 .collection-item h3 {
-  padding: 12px 16px 4px;
-  font-size: 1.1rem;
+  padding: 12px 16px 6px;
+  font-size: 1.05rem;
   color: var(--primary);
+  margin: 0;
 }
 
 .collection-item p {
-  padding: 0 16px 16px;
+  padding: 0 16px 14px;
   color: #555;
   font-size: 0.95rem;
+  margin: 0;
 }
 
-/* Botão "View Collection" dentro dos cards */
+/* Botão "View Collection" */
 .collection-item .view-btn {
   display: inline-flex;
   align-items: center;
@@ -330,22 +357,23 @@ main {
   transform: translateY(-1px);
 }
 
-/* Botão DELETE dentro dos cards */
+/* DELETE overlay */
 .collection-item .delete-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  margin: 0;
+  z-index: 5;
 
-  margin: 12px 16px 0;
-  padding: 7px 12px;
-
-  background: #ffffff;
-  border: 1px solid var(--border);
+  padding: 6px 10px;
   border-radius: 10px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(6px);
 
+  border: 1px solid var(--border);
   color: #b40000;
   font-size: 0.85rem;
-  font-weight: 600;
+  font-weight: 700;
 
   cursor: pointer;
   transition: background 0.2s ease, transform 0.1s ease, color 0.2s ease;
@@ -357,22 +385,49 @@ main {
   transform: translateY(-1px);
 }
 
-#collections-list > a {
+/* =========================================================
+   SEE MORE (✅ normal, não gigante, quase no fundo)
+   ========================================================= */
+#collections-list > a.see-more {
   grid-column: 1 / -1;
-  text-align: center;
-  color: var(--primary);
-  font-weight: 600;
-  text-decoration: none;
-  margin-top: 8px;
-  transition: color 0.3s;
+
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  /* ✅ tamanho normal */
+  width: fit-content !important;
+  height: auto !important;
+  padding: 10px 18px !important;
+
+  border-radius: 12px !important;
+  border: 1px solid var(--border) !important;
+  background: #ffffff !important;
+
+  color: var(--primary) !important;
+  font-weight: 700 !important;
+  text-decoration: none !important;
+
+  cursor: pointer !important;
+
+  /* ✅ empurra pra baixo SEM bugar card */
+  margin-top: auto !important;
+  margin-bottom: 6px !important;
+
+  /* ✅ fica “no meio” da área das coleções */
+  justify-self: center !important;
+
+  transition: background 0.2s ease, color 0.2s ease, transform 0.1s ease !important;
 }
 
-#collections-list > a:hover {
-  color: var(--accent);
+#collections-list > a.see-more:hover {
+  background: var(--accent) !important;
+  color: #000 !important;
+  transform: translateY(-1px) !important;
 }
 
 /* =========================================================
-   FOOTER
+   FOOTER (✅ sempre no fundo do card)
    ========================================================= */
 footer {
   margin-top: auto;
@@ -394,6 +449,8 @@ footer {
       "main main"
       "footer footer";
     grid-template-columns: 1fr 1fr;
+
+    align-content: start;
   }
 
   aside {
@@ -407,6 +464,19 @@ footer {
     flex-direction: row;
     flex-wrap: wrap;
   }
+
+  #collections-list {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 260px));
+    min-height: 55vh;
+  }
+
+  .collection-item {
+    max-width: 260px;
+  }
+
+  .collection-item img {
+    height: 160px;
+  }
 }
 
 @media (max-width: 767.98px) {
@@ -418,82 +488,17 @@ footer {
   main {
     padding: 12px 4px 20px;
   }
-}
-/* =========================================================
-   PATCH: Delete no canto superior do card (overlay)
-   ========================================================= */
-.collection-item {
-  position: relative; /* base para o botão absoluto */
-}
 
-.collection-item .delete-btn {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  margin: 0;                 /* remove margin antigo */
-  z-index: 5;
+  #collections-list {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
 
-  /* mantém seu estilo, só ajusta para ficar "chip" */
-  padding: 6px 10px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(6px);
-}
-/* =========================================================
-   PATCH: See More como botão (mantém embaixo, não quebra grid)
-   ========================================================= */
-#collections-list > a.see-more {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  .collection-item {
+    max-width: 100%;
+  }
 
-  width: fit-content;
-  margin: 8px auto 0;        /* centraliza e mantém embaixo */
-  padding: 10px 16px;
-
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  background: #ffffff;
-  color: var(--primary);
-
-  text-decoration: none;
-  font-weight: 700;
-  cursor: pointer;
-
-  transition: background 0.2s ease, color 0.2s ease, transform 0.1s ease;
-}
-
-#collections-list > a.see-more:hover {
-  background: var(--accent);
-  color: #000;
-  transform: translateY(-1px);
-}
-
-/* =========================================================
-   FIX DEFINITIVO: See More com design (forçado)
-   ========================================================= */
-a.see-more {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-
-  margin: 16px auto 0 !important;
-  padding: 10px 18px !important;
-
-  border-radius: 12px !important;
-  border: 1px solid var(--border) !important;
-  background: #ffffff !important;
-
-  color: var(--primary) !important;
-  font-weight: 700 !important;
-  text-decoration: none !important;
-
-  cursor: pointer !important;
-  transition: background 0.2s ease, color 0.2s ease, transform 0.1s ease !important;
-}
-
-a.see-more:hover {
-  background: var(--accent) !important;
-  color: #000 !important;
-  transform: translateY(-1px) !important;
+  .collection-item img {
+    height: 190px;
+  }
 }
